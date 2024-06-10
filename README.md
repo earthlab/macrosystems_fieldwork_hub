@@ -4,8 +4,9 @@ A repository for all things Macrosystems fieldwork related, including macrosyste
 # Important Links
 * [Fieldwork GDrive](https://drive.google.com/drive/folders/1ARom7ANamjEfgzOd7agm1PTxPF1K1z9b?usp=drive_link)
 * [AvenzaKMLs Folder](https://drive.google.com/drive/folders/164l4PtLY79svWSYn51ZN3AQwKh8EqROY?usp=drive_link)
-* [Drone data spreadsheet (recording flights, clouds, gcps)](https://docs.google.com/spreadsheets/d/1KahrdF1yzqLVi6hSEmn4hYBvZXWP1Uupj8Vozob_WtY/edit?usp=drive_link)
+* [Drone data spreadsheet (recording flights, weather, gcps)](https://docs.google.com/spreadsheets/d/1KahrdF1yzqLVi6hSEmn4hYBvZXWP1Uupj8Vozob_WtY/edit?usp=drive_link)
 * [2024 Field Day Tracking & Data Processing](https://docs.google.com/spreadsheets/d/1HtjINMxrU8guyTSxz_OdsRKZ9KZ4zYN_TVUaIBOXzow/edit?usp=drive_link)
+* [Earth Lab Drone Manual (including weather documentation protocol)](https://docs.google.com/document/d/1r_OoGRn0J6M--mA5OQc8BaterLIH4j6VHpvokBaC-9o/edit?usp=sharing)
 
 # Complete List Of Workflows
 This repository includes a number of workflows, both code-based and written. An overview of them is provided below:
