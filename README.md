@@ -1,2 +1,2 @@
 # macrosystems_workflows
-A repository for macrosystems workflows (e.g. digital mapping, UAS processing, plot creation)
+A repository for all things Macrosystems fieldwork related, including macrosystems workflows (e.g. digital mapping, UAS processing, plot creation)
