@@ -31,9 +31,10 @@ If the user does not have an Identikey, you can request one through the CU POI o
 * Use the below command line code templates to download your finished outputs to this new directory on your local machine. There should be one template below for everyone. Copy the template, and then make the necessary changes. The bolded parts will need to be changed for each plot. Run this command line code from your local machine. You will be asked for your IdentiKey password and then receive a DuoPush.
 
 **Adam template**
-
+```
 scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-2024/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/agysi/OneDrive/Desktop/Documents/Macrosystems/**kremmling_2-06-05-24**
-
+```
 **Jojo template**
-
+```
 scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-2024/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/josep/Documents/Macrosystems/**kremmling_2-06-05-24**
+```
