@@ -5,13 +5,16 @@ This workflow describes how to process UAS data for the Macrosystems project. It
 ## Access CU Research Computing via OnDemand
 * Go to CU OnDemand: https://ondemand.rc.colorado.edu/
 * Sign in - If you do not have access to CURC, see below ("Getting CURC Access")
-Start desktop (top nav bar, “Interactive Apps”, “Core desktop”)
-Set the number of hours you expect to use the desktop (over-estimate!)
-Set the number of cores, either 8 or 16 usually
-Wait for the job to start. It will be ‘Queued’ for a little while, exact time totally depends on current demand.
-Open the Terminal and type the following commands:
-source ~/.metashape
-metashape
+* Start desktop (top nav bar, “Interactive Apps”, “Core desktop”)
+  * Set the number of hours you expect to use the desktop (over-estimate!)
+  * Set the number of cores, either 8 or 16 usually
+* Wait for the job to start. It will be ‘Queued’ for a little while, exact time totally depends on current demand.
+* Open the Terminal and type the following commands:
+  * source ~/.metashape
+  * metashape
+* Before the FIRST time you ever save anything with Metashape, run this line of code from the terminal:
+  * echo "umask 0000" >> ~/.metashape
+  * This will ensure that all of your Metashape files and directories have open permissions (the default settings are a pain)
 
 ### Getting CURC Access
 If the user has a CU Identikey, they can just sign up for an account as normal at [https://rcamp.rc.colorado.edu/accounts/account-request/create/verify/ucb]. Once they have an account they can be added to any user groups/accounts on the system that they need to access Earthlab software/files. Have the Macrosystems project manager email Research Computing Help (rc-help@colorado.edu) and ask for them to have access to Earth Lab petalibrary files and Metashape.
