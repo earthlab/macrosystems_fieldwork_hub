@@ -15,7 +15,7 @@ Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps
    * M300 Real Color
    * M300 False Color
    * Mini2
-8. Create an ArcGIS Field Map document with the following data:
+8. Create an ArcGIS Field Map document (see [Preparing a fieldmap workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/prepare_fieldmap.md)) with the following data:
    * All UAS tile packages
    * The overarching macrosystems_uas_polygons feature layer
      * Ensure that the fieldmaps form embedded in the feature layer is up to date! The first time each summer you will need to add in the names of new field staff.
