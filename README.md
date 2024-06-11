@@ -7,7 +7,7 @@ A repository for all things Macrosystems fieldwork related, including macrosyste
 * [Drone data spreadsheet (recording flights, weather, gcps)](https://docs.google.com/spreadsheets/d/1KahrdF1yzqLVi6hSEmn4hYBvZXWP1Uupj8Vozob_WtY/edit?usp=drive_link)
 * [2024 Field Day Tracking & Data Processing](https://docs.google.com/spreadsheets/d/1HtjINMxrU8guyTSxz_OdsRKZ9KZ4zYN_TVUaIBOXzow/edit?usp=drive_link)
 * [Earth Lab Drone Manual (including weather documentation protocol)](https://docs.google.com/document/d/1r_OoGRn0J6M--mA5OQc8BaterLIH4j6VHpvokBaC-9o/edit?usp=sharing)
-* ]Macrosystems Agenda & Notes](https://docs.google.com/document/d/1VbHkkWsqZzwsUc_j5OC_rxyWmMnrJDK1jKru-RsmRGw)
+* [Macrosystems Agenda & Notes](https://docs.google.com/document/d/1VbHkkWsqZzwsUc_j5OC_rxyWmMnrJDK1jKru-RsmRGw)
 
 # Complete List Of Workflows
 This repository includes a number of workflows, both code-based and written. An overview of them is provided below. We recommend accessing lower-level workflows via links in the high level workflows.
