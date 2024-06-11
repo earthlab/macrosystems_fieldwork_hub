@@ -16,6 +16,8 @@ This repository includes a number of workflows, both code-based and written. An 
 * **aop_digital_mapping_workflow.md** - This workflow outlines the process for generating spectral data samples from NEON AOP data for the Macrosystems project. It runs from identifying high priority target areas through to usable data and references multiple lower-level workflows.
 
 ## Low Level Workflows
-* [**create_tile_package.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/create_tile_package.md) - This workflow outlines how to create a tile package from a .tif file (e.g. from NEON AOP or UAS raster data)
-* [**uas_data_structure.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_data_structure.md) - This workflow outlines the standardized data structure used for Macrosystems UAS packages
-* [**uas_field_protocols.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_field_protocols.md) - This workflow outlines standard UAS protocols and parameters for the Macrosystems project
+* [**create_tile_package.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md) - This workflow outlines how to create a tile package from a .tif file (e.g. from NEON AOP or UAS raster data)
+* [**uas_data_structure.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_data_structure.md) - This workflow outlines the standardized data structure used for Macrosystems UAS packages
+* [**uas_field_protocols.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_field_protocols.md) - This workflow outlines standard UAS protocols and parameters for the Macrosystems project
+* [**metashape_workflow.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/metashape_workflow.md) - This workflow outlines the specific Metashape workflow used for Macrosystems data processing
+* [**process_uas_data.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/process_uas_data.md) - This workflow outlines how to process UAS data using Metashape on CU Boulder's research computing, how to extract key metadata, and how to transfer data back to local for tile package creation.
