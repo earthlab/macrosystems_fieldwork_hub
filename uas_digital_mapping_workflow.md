@@ -19,13 +19,13 @@ Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps
      * False Color: Red = Band 10, Green = Band 6, Blue = Band 4
 9. Georeference the RGB imagery to the MicaSense imagery, which should be more accurate since it was collected using RTK corrections (see [Georeferencing Imagery workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/georeference_imagery)).
 10. Generate tile packages: (use this [Tile Package Creation workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
-   * M300 Real Color
-   * M300 False Color
-   * Mini2
+     * M300 Real Color
+     * M300 False Color
+     * Mini2
 11. Create an ArcGIS Field Map document (see [Preparing a fieldmap workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/prepare_fieldmap.md)) with the following data:
-   * All UAS tile packages
-   * The overarching macrosystems_uas_polygons feature layer
+     * All UAS tile packages
+     * The overarching macrosystems_uas_polygons feature layer
      * Ensure that the fieldmaps form embedded in the feature layer is up to date! The first time each summer you will need to add in the names of new field staff.
-   * Actionable plot boundary
+     * Actionable plot boundary
 11. Return to plot to perform digital mapping in the field
 12. Sync polygon data on return and perform QA/QC
