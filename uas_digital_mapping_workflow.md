@@ -7,7 +7,7 @@ This document provides a high level view of how to perform the Macrosystems UAS 
    * UAS with MicaSense RedEdge Sensor attached (e.g. Matrice 300 or similar)
    * UAS with high-resolution RGB sensor (e.g. Phantom 4 Pro or DJI Mini2)
 5. Create UAS data file structure and transfer raw data to PetaLibrary (see [UAS Data Structure](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_data_structure.md))
-6. Process UAS data via Metashape on CU Research Computing and transfer back to local
+6. Process UAS data via Metashape on CU Research Computing and transfer back to local (see [workflow for processing UAS data](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/process_uas_data.md))
 7. Generate tile packages: (use this [Tile Package Creation workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/create_tile_package.md))
    * M300 Real Color
    * M300 False Color
