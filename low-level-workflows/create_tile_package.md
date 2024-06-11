@@ -8,9 +8,9 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
   * Go to “Map” tab, “Add data” button, then “Add data”
   * Navigate to geotiff file, select it, then hit “OK”
 * Clip to plot area if necessary (unnecessary for Macrosystems)
-* Visualize as desired. For Macrosystems M300 imagery, see below:
-  * M300 true color: R-G-B, 6-4-2 (~7cm)
-  * M300 false color: NIR-R-G, 10-6-4 (~7cm)
+* Visualize as desired. For Macrosystems MicaSense imagery, see below:
+  * MicaSense true color: R-G-B, 6-4-2 (~7cm)
+  * MicaSense false color: NIR-R-G, 10-6-4 (~7cm)
   * Note that you will need to export a new tile package for each different visualization that you want, since tile packages are essentially a visual snapshot of the data.
 * Remove default base maps from new project (Right click the layer, click “Remove”)
   * (Create Map Tile Package does not run with them on)
@@ -21,15 +21,19 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
 * Use tool: **Create Map Tile Package**
   * Set zoom level to appropriate scale [Zoom level to scale converter](https://developers.arcgis.com/documentation/mapping-apis-and-services/reference/zoom-levels-and-scale/#conversion-tool) (see "Tile Package Parameters" section) for more information on parameters)
 * Save and export tile package
+  * Save the tile packages with the following naming conventions:
+    * plotNameAndNumber_MicaSense_falseColor_tile_package
+    * plotNameAndNumber_MicaSense_realColor_tile_package
+    * plotNameAndNumber_RGB_highres_tile_package
 * Load tile package back into your document to confirm that it generated appropriately
 * Repeat these steps for each layer you would like to be available in FieldMaps
 
 
 ## ArcMap
 * Open orthomosaic
-* Visualize as desired. For Macrosystems M300 imagery, see below:
-  * M300 true color: R-G-B, 6-4-2 (~7cm)
-  * M300 false color: NIR-R-G, 10-6-4 (~7cm)
+* Visualize as desired. For Macrosystems MicaSense imagery, see below:
+  * MicaSense true color: R-G-B, 6-4-2 (~7cm)
+  * MicaSense false color: NIR-R-G, 10-6-4 (~7cm)
   * Note that you will need to export a new tile package for each different visualization that you want, since tile packages are essentially a visual snapshot of the data.
 * Add document description
   * File > Map Document Properties > Add Description 
@@ -52,6 +56,6 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
     * 30m raster: 17
   * Macrosystems minimum scales:
     * 0 (it’s sometimes convenient to have the lower scales to make it easy to find the imagery when zoomed out, e.g. if get lost on the map or if load while in a different location and it auto-zooms to your GPS location. However, if the large white tiles around your imagery bother you, you can increase this by a few scales)
-    * 
+   
 
 Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).
