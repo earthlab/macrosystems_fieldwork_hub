@@ -20,3 +20,18 @@ This workflow describes how to process UAS data for the Macrosystems project. It
 If the user has a CU Identikey, they can just sign up for an account as normal at [https://rcamp.rc.colorado.edu/accounts/account-request/create/verify/ucb]. Once they have an account they can be added to any user groups/accounts on the system that they need to access Earthlab software/files. Have the Macrosystems project manager email Research Computing Help (rc-help@colorado.edu) and ask for them to have access to Earth Lab petalibrary files and Metashape.
  
 If the user does not have an Identikey, you can request one through the CU POI or Research Affiliate process ([see Earth Lab's guide to this process](https://github.com/earthlab/earth-lab-operations/wiki/CU-Research-Affiliates-&-Persons-of-Interest-(POIs))). Once that process is finished, the user can sign up for a CURC account per the above instructions.
+
+# Metashape Workflow
+
+
+# Extract Image Metadata for raster corrections
+
+# Transfer data from PetaLibrary to local
+* Create a new directory in your local Macrosystems work folder and name it according to the plot location you are working on (e.g. kremmling_2-06-05-24)
+* Use the below command line code templates to download your finished outputs to this new directory on your local machine. There should be one template below for everyone. Copy the template, and then make the necessary changes. The bolded parts will need to be changed for each plot.
+
+Adam template
+scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-2024/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/agysi/OneDrive/Desktop/Documents/Macrosystems/**kremmling_2-06-05-24**
+
+Jojo template
+scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-2024/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/josep/Documents/Macrosystems/**kremmling_2-06-05-24**
