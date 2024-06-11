@@ -52,3 +52,6 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
     * 30m raster: 17
   * Macrosystems minimum scales:
     * 0 (it’s sometimes convenient to have the lower scales to make it easy to find the imagery when zoomed out, e.g. if get lost on the map or if load while in a different location and it auto-zooms to your GPS location. However, if the large white tiles around your imagery bother you, you can increase this by a few scales)
+    * 
+
+Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).
