@@ -29,7 +29,7 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
 * Repeat these steps for each layer you would like to be available in FieldMaps
 
 
-Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).
+**Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).**
 
 
 ## Tile Package Parameters
