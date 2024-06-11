@@ -1,6 +1,6 @@
 # Process Macrosystems UAS Data
 
-This workflow describes how to process UAS data for the Macrosystems project. It is a more specific version of the [Earth Lab metashape workflow](https://github.com/earthlab/el-drones/blob/master/docs/03_post-mission_agisoft_metashape_workflow.md), which was developed by Megan Cattau from a guide posted in this [Agisoft forum post](https://www.agisoft.com/forum/index.php?topic=7851.0). Also see Megan Cattau's [UASWorkflows repo](https://github.com/mcattau/UASWorkflows).
+This workflow outlines how to process UAS data using Metashape on CU Boulder's research computing, how to extract key metadata, and how to transfer data back to local for tile package creation.
 
 ## Access CU Research Computing via OnDemand
 * Go to CU OnDemand: https://ondemand.rc.colorado.edu/
