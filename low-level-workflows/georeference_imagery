@@ -4,9 +4,9 @@ Georeferencing (sometimes called rubbersheeting) is a useful approach for re-ref
 
 Georeferencing can be completed in either QGIS or ArcGIS Pro. The workflow here is for ArcGIS Pro since the tile packages created immediately after this step need to be created in ArcGIS Pro.
 
-1. 
+1. Open your 
 
 
 
 
-Return to 
+Return to [UAS Digital Mapping workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).
