@@ -17,7 +17,7 @@ Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps
    * Change the Red-Green-Blue bands
      * Real Color: Red = Band 6, Green = Band 4, Blue = Band 2
      * False Color: Red = Band 10, Green = Band 6, Blue = Band 4
-9. Georeference the RGB imagery to the MicaSense imagery, which should be more accurate since it was collected using RTK corrections (see [Georeferencing Imagery workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/georeference_imagery)).
+9. Georeference the RGB imagery to the MicaSense imagery, which should be more accurate since it was collected using RTK corrections (see [Georeferencing Imagery workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/georeference_imagery.md)).
 10. Generate tile packages: (use this [Tile Package Creation workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
      * MicaSense Real Color
      * MicaSense False Color
