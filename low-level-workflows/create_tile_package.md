@@ -1,6 +1,6 @@
 # Instructions for creating a tile package
 
-Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we use for our digital mapping workflow. Instructions for this step are below for both ArcGIS Pro and ArcMap.
+Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we use for our digital mapping workflow. Instructions for this step are below for both ArcGIS Pro and ArcMap (at very bottom).
 
 ## ArcGIS Pro
 * Open orthomosaic(s) in ArcGIS Pro
@@ -29,21 +29,7 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
 * Repeat these steps for each layer you would like to be available in FieldMaps
 
 
-## ArcMap
-* Open orthomosaic
-* Visualize as desired. For Macrosystems MicaSense imagery, see below:
-  * MicaSense true color: R-G-B, 6-4-2 (~7cm)
-  * MicaSense false color: NIR-R-G, 10-6-4 (~7cm)
-  * Note that you will need to export a new tile package for each different visualization that you want, since tile packages are essentially a visual snapshot of the data.
-* Add document description
-  * File > Map Document Properties > Add Description 
-* Toggle off the layers you aren’t tiling yet
-* Save Map 
-* Use: **Create Map Tile Package**
-  * Select map document 
-* Repeat these steps for each layer you would like to be available in FieldMaps
-
-# Tile Package Parameters
+## Tile Package Parameters
 [Details on tile package parameters can be found here](https://pro.arcgis.com/en/pro-app/latest/tool-reference/data-management/create-map-tile-package.htm).
 
 * Tiling Format: Use JPEG format for high-resolution rasters, and PNG for anything that you need transparency in
@@ -59,3 +45,26 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
    
 
 Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).
+
+
+
+
+
+## ArcMap instructions if using ArcMap
+* Open orthomosaic
+* Visualize as desired. For Macrosystems MicaSense imagery, see below:
+  * MicaSense true color: R-G-B, 6-4-2 (~7cm)
+  * MicaSense false color: NIR-R-G, 10-6-4 (~7cm)
+  * Note that you will need to export a new tile package for each different visualization that you want, since tile packages are essentially a visual snapshot of the data.
+* Add document description
+  * File > Map Document Properties > Add Description 
+* Toggle off the layers you aren’t tiling yet
+* Save Map 
+* Use: **Create Map Tile Package**
+  * Select map document
+* Save and export tile package
+  * Save the tile packages with the following naming conventions:
+    * plotNameAndNumber_MicaSense_falseColor_tile_package
+    * plotNameAndNumber_MicaSense_realColor_tile_package
+    * plotNameAndNumber_RGB_highres_tile_package
+* Repeat these steps for each layer you would like to be available in FieldMaps
