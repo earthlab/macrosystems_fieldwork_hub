@@ -10,7 +10,7 @@ A repository for all things Macrosystems fieldwork related, including macrosyste
 * [Macrosystems Agenda & Notes](https://docs.google.com/document/d/1VbHkkWsqZzwsUc_j5OC_rxyWmMnrJDK1jKru-RsmRGw)
 
 # Complete List Of Workflows
-This repository includes a number of workflows, both code-based and written. An overview of them is provided below. We recommend accessing lower-level workflows via links in the high level workflows.
+This repository includes a number of workflows, both code-based and written. An overview of them is provided below. We recommend accessing lower-level workflows via links in the high level workflows. Upon finishing a low-level workflow, you will be directed back to the workflow you started from.
 
 ## High Level Workflows
 * [**uas_digital_mapping_workflow.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md) - This workflow outlines the entire process for generating spectral data samples from UAS for the Macrosystems project. It runs from identifying and creating plots through to usable data and references multiple lower-level workflows
