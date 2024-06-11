@@ -1,0 +1,12 @@
+# Georeference Imagery
+
+Georeferencing (sometimes called rubbersheeting) is a useful approach for re-referencing a raster to a new spatial location, or for adding spatial information to an image such as a scan of a map.
+
+Georeferencing can be completed in either QGIS or ArcGIS Pro. The workflow here is for ArcGIS Pro since the tile packages created immediately after this step need to be created in ArcGIS Pro.
+
+1. 
+
+
+
+
+Return to 
