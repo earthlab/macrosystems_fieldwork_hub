@@ -9,7 +9,7 @@ A repository for all things Macrosystems fieldwork related, including macrosyste
 * [Earth Lab Drone Manual (including weather documentation protocol)](https://docs.google.com/document/d/1r_OoGRn0J6M--mA5OQc8BaterLIH4j6VHpvokBaC-9o/edit?usp=sharing)
 
 # Complete List Of Workflows
-This repository includes a number of workflows, both code-based and written. An overview of them is provided below:
+This repository includes a number of workflows, both code-based and written. An overview of them is provided below. We recommend accessing lower-level workflows via links in the high level workflows.
 
 ## High Level Workflows
 * [**uas_digital_mapping_workflow.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md) - This workflow outlines the entire process for generating spectral data samples from UAS for the Macrosystems project. It runs from identifying and creating plots through to usable data and references multiple lower-level workflows
