@@ -16,4 +16,4 @@ This repository includes a number of workflows, both code-based and written. An 
 * **aop_digital_mapping_workflow.md** - This workflow outlines the process for generating spectral data samples from NEON AOP data for the Macrosystems project. It runs from identifying high priority target areas through to usable data and references multiple lower-level workflows.
 
 ## Low Level Workflows
-* create_tile_package.md - This workflow outlines how to create a tile package from a .tif file (e.g. from NEON AOP or UAS raster data)
+* **create_tile_package.md** - This workflow outlines how to create a tile package from a .tif file (e.g. from NEON AOP or UAS raster data)
