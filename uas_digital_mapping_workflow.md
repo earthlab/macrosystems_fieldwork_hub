@@ -5,7 +5,8 @@ Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps
 
 1. Establish plot locations
 2. Generate plot files
-3. Fly UAS plot (see [UAS Field Protocols](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_field_protocols.md))
+3. Prepare for field and perform flight planning
+4. Go into the field and fly UAS plot (see [UAS Field Protocols](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_field_protocols.md))
    * UAS with MicaSense RedEdge Sensor attached (e.g. Matrice 300 or similar)
    * UAS with high-resolution RGB sensor (e.g. Phantom 4 Pro or DJI Mini2)
 5. Create UAS data file structure and transfer raw data to PetaLibrary (see [UAS Data Structure](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_data_structure.md))
