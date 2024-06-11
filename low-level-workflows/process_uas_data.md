@@ -50,3 +50,5 @@ scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer
 ```
 scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-2024/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/josep/Documents/Macrosystems/**kremmling_2-06-05-24**
 ```
+
+Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).
