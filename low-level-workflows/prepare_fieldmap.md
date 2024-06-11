@@ -11,9 +11,9 @@
     * Select the appropriate folder (i.e. YEAR_Macro)
     * Click save
 5. Do step 4 for the following sets of data:
-    * micaSense_falseColor tile package (from [Create Tile Package] workflow(https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
-    * micaSense_realColor tile package (from [Create Tile Package] workflow(https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
-    * RGB_highres tile package (from [Create Tile Package] workflow(https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
+    * micaSense_falseColor tile package (from [Create Tile Package workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
+    * micaSense_realColor tile package (from [Create Tile Package workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
+    * RGB_highres tile package (from [Create Tile Package workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
     * If not already uploaded to ArcGIS Online, the plot set for your area, which should be in .gpkg form (from plot generation scripts)
 6. After each layer uploads, if it was a tile package layer, set properties on the page pulled up:
      * Set visible range from World all the way to Room
