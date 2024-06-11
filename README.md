@@ -17,3 +17,5 @@ This repository includes a number of workflows, both code-based and written. An 
 
 ## Low Level Workflows
 * [**create_tile_package.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/create_tile_package.md) - This workflow outlines how to create a tile package from a .tif file (e.g. from NEON AOP or UAS raster data)
+* [**uas_data_structure.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_data_structure.md) - This workflow outlines the standardized data structure used for Macrosystems UAS packages
+* [**uas_field_protocols.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_field_protocols.md) - This workflow outlines standard UAS protocols and parameters for the Macrosystems project
