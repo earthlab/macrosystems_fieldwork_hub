@@ -9,6 +9,8 @@ To move this full directory to Petalibrary for processing and storage, run the b
 scp -r LOCATION_OF_DIRECTORY YOUR_IDENTIKEY@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-YEAR
 ```
 
+Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).
+
 **FILE STRUCTURE**
 ```
 C:.                      # Your root directory will be identified as follows: plot#-date (e.g. kremmling_2-06-05-24)
