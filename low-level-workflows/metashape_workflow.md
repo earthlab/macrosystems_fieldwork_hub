@@ -143,3 +143,4 @@ This workflow describes how to process UAS data for the Macrosystems project. It
     - Keep all defaults, but re-name it to the appropriate name and then "_report". Click 'ok'
     - Make sure it exports in the 'Outputs' folder for your project with the right name
 
+Return to [Processing UAS data](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/process_uas_data.md)
