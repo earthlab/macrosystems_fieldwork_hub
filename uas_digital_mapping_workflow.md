@@ -11,14 +11,15 @@ Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps
    * UAS with high-resolution RGB sensor (e.g. Phantom 4 Pro or DJI Mini2)
 5. Create UAS data file structure and transfer raw data to PetaLibrary (see [UAS Data Structure](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_data_structure.md))
 6. Process UAS data via Metashape on CU Research Computing and transfer back to local (see [workflow for processing UAS data](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/process_uas_data.md))
-7. Generate tile packages: (use this [Tile Package Creation workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
+7. Georeference the RGB imagery to the MicaSense imagery, which should be more accurate since it was collected using RTK corrections (see [Georeferencing Imagery workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/georeference_imagery)).
+8. Generate tile packages: (use this [Tile Package Creation workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
    * M300 Real Color
    * M300 False Color
    * Mini2
-8. Create an ArcGIS Field Map document (see [Preparing a fieldmap workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/prepare_fieldmap.md)) with the following data:
+9. Create an ArcGIS Field Map document (see [Preparing a fieldmap workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/prepare_fieldmap.md)) with the following data:
    * All UAS tile packages
    * The overarching macrosystems_uas_polygons feature layer
      * Ensure that the fieldmaps form embedded in the feature layer is up to date! The first time each summer you will need to add in the names of new field staff.
    * Actionable plot boundary
-9. Return to plot to perform digital mapping in the field
-10. Sync polygon data on return and perform QA/QC
+10. Return to plot to perform digital mapping in the field
+11. Sync polygon data on return and perform QA/QC
