@@ -1,6 +1,8 @@
 # UAS Digital Mapping Workflow
 This document provides a high level view of how to perform the Macrosystems UAS digital mapping workflow. It links out to other more low-level workflows contained in this repository. This workflow is similar to that for NEON AOP digital mapping, but with some slight differences.
 
+Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps. While there is an open source alternative (QField), this is newer and not as stable as of when this workflow was initiated in 2022-2023.
+
 1. Establish plot locations
 2. Generate plot files
 3. Fly UAS plot (see [UAS Field Protocols](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_field_protocols.md))
