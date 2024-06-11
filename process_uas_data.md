@@ -21,10 +21,21 @@ If the user has a CU Identikey, they can just sign up for an account as normal a
  
 If the user does not have an Identikey, you can request one through the CU POI or Research Affiliate process ([see Earth Lab's guide to this process](https://github.com/earthlab/earth-lab-operations/wiki/CU-Research-Affiliates-&-Persons-of-Interest-(POIs))). Once that process is finished, the user can sign up for a CURC account per the above instructions.
 
+
 # Metashape Workflow
 
 
+
 # Extract Image Metadata for raster corrections
+
+[CURC instructions for Anaconda on HPC](https://curc.readthedocs.io/en/latest/software/python.html)
+Custom environment: imgdateenv2
+
+```
+module load anaconda
+conda activate imgdateenv2
+python extract_metadata.py --main_dir [DIRECTORY]
+```
 
 # Transfer data from PetaLibrary to local
 * Create a new directory in your local Macrosystems work folder and name it according to the plot location you are working on (e.g. kremmling_2-06-05-24)
