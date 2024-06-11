@@ -6,7 +6,7 @@ This document provides a high level view of how to perform the Macrosystems UAS 
 3. Fly UAS plot
 4. Create UAS data file structure and transfer raw data to PetaLibrary
 5. Process UAS data via Metashape on CU Research Computing and transfer back to local
-6. Generate tile packages:
+6. Generate tile packages: (use this [Tile Package Creation workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/create_tile_package.md))
    * M300 Real Color
    * M300 False Color
    * Mini2
