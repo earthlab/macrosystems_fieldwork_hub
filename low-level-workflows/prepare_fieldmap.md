@@ -59,6 +59,11 @@
 5. Click "Offline" in the bar at far left
      * Make sure that Offline is toggled ON at the top of the page
      * If it is NOT toggled on, you most likely have an error in one of your layers (should be listed below the toggle). Resolve these issues. You've most likely forgotten to turn on "Enable Sync" for a feature layer or "Offline use" for a tile package. Return and check to see if you can now toggle on "Offline"
+6. Go to "App Settings" in the bar at far left
+     * Scroll down to "Collecting New Features"
+     * Select "No changes to the map"
+     * Under "Manual Location", make sure that "Allow manual location" is selected
+7. Save your changes!! Click the floppy disk save icon at upper right (next to the circle arror, right underneath the account name)
   
 ## Enable OverZoom
 
