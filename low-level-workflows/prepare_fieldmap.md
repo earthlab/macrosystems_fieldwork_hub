@@ -31,6 +31,38 @@
 
   
 ## Create a new map with the data you want to use for field mapping
-1. 
+1. From your ArcGIS Online Home screen, click "Map" at top
+2. At top left, click "Add" to add data
+3. The layers you just uploaded and worked with should show up at the top of the default list. If they do not, use the search bar to find them.
+4. Add all tile packages for the set of plots to the map
+5. Add the plot set boundaries to the map, either the hosted feature layer or the hosted vector tile (if workaround was used above)
+6. Add the field mapping polygon set of interest to the map. These feature layers already have the field map forms embedded in them.
+   * macrosystems_uas_polygons for UAS mapping
+   * aop_macrosystems_data for AOP mapping
+7. Make sure that the visualization of all layers is as you want it
+8. Make sure that the layer orders are correct:
+   * _Top_
+   * Field mapping polygon set
+   * Plot boundaries
+   * RGB high res packages
+   * MicaSense realColor packages
+   * MicaSense falseColor packages
+   * _Bottom_
+10. Save your map
+
+## Create your FieldMap
+1. Click the icon with 9 dots at upper right
+2. Select "Field Maps Designer"
+3. You should see the map that you just saved in the list of maps that comes up when the page loads. Click on it.
+4. You should see a mapping form show up that has been embedded in the field polygon set.
+    * If it is the first field day of the season, make any necessary changes (e.g. adding new names to the list of Collectors). Otherwise, it should be good to go already.
+5. Click "Offline" in the bar at far left
+     * Make sure that Offline is toggled ON at the top of the page
+     * If it is NOT toggled on, you most likely have an error in one of your layers (should be listed below the toggle). Resolve these issues. You've most likely forgotten to turn on "Enable Sync" for a feature layer or "Offline use" for a tile package. Return and check to see if you can now toggle on "Offline"
+  
+## Enable OverZoom
+
+  
+
 
 Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md) or AOP Digital Mapping Workflow
