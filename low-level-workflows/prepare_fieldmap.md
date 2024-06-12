@@ -67,7 +67,23 @@
   
 ## Enable OverZoom
 
-  
+[ADD THIS FROM OTHER WORKFLOW] - HAS IMAGES
+https://docs.google.com/document/d/1ff1AYpDaB1ByZPJ3qEwg4VkytPw-PHX_sW6oOjlBhvo/edit
+
+## Download for offline use
+1. Open ArcGIS FieldMaps on the phone or tablet that you would like to use for digital mapping
+2. Refresh to ensure that all data is updated
+3. Click the three dots next to the map you would like to take offline -> “Add offline area”
+4. Change level of detail as appropriate for purpose / rasters
+   * “Rooms” will allow about 3x5 AOP tiles to be downloaded
+   * “Room” will allow a bit less than one AOP tile to be downloaded
+   * “Room” is appropriate for all drone imagery
+5. Zoom to your minimum-necessary area (this will impact the download size)
+6. Download area
+7. Once downloaded, click the three dots next to the downloaded area to change the name
+8. Repeat steps 3-8 for each plot or area of the field map that you would like to make accessible offline
+
+
 
 
 Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md) or AOP Digital Mapping Workflow
