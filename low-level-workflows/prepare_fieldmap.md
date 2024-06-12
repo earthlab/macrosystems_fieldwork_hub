@@ -20,8 +20,15 @@
      * Toggle Offline Mode so that it is ON
      * Click Save
 7. After each plot set gpkg or shapefile uploads:
-     * Go to the file's Settings and scroll down to "Feature Layer (Hosted)". Check the checkbox for "Enable Sync" and save the settings. This is necessary for offline use.
      * Go to the file's Visualization page and change the fill to be NULL and the boundary to be red. Change the visible range to be from Room -> World
+     * Go to the file's Settings and scroll down to "Feature Layer (Hosted)". Check the checkbox for "Enable Sync" and save the settings. This is necessary for offline use.
+         * IF YOU ARE GETTING AN ERROR that says that you are unable to save the change of settings after Enabling Sync, use this workaround:
+             * In the hosted feature layer details, click "Publish" and then "Vector Tile layer"
+             * Keep the tiling scheme defaults that come up and click "Next"
+             * Add "_vTile" to the end of the file's name and then click "Save"
+             * Go into the new vector tile layer's settings and make sure that Offline Use is toggled ON
+             * You will now add this to your map instead of the hosted feature layer
+
   
 ## Create a new map with the data you want to use for field mapping
 1. 
