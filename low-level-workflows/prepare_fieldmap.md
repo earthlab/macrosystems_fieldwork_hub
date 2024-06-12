@@ -15,10 +15,13 @@
     * micaSense_realColor tile package (from [Create Tile Package workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
     * RGB_highres tile package (from [Create Tile Package workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md))
     * If not already uploaded to ArcGIS Online, the plot set for your area, which should be in .gpkg form (from plot generation scripts)
-6. After each layer uploads, if it was a tile package layer, set properties on the page pulled up:
+6. After each tile package uploads, set properties on the page pulled up:
      * Set visible range from World all the way to Room
      * Toggle Offline Mode so that it is ON
      * Click Save
+7. After each plot set gpkg or shapefile uploads:
+     * Go to the file's Settings and scroll down to "Feature Layer (Hosted)". Check the checkbox for "Enable Sync" and save the settings. This is necessary for offline use.
+     * Go to the file's Visualization page and change the fill to be NULL and the boundary to be red. Change the visible range to be from Room -> World
   
 ## Create a new map with the data you want to use for field mapping
 1. 
