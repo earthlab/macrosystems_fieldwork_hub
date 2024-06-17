@@ -9,6 +9,17 @@ A repository for all things Macrosystems fieldwork related, including macrosyste
 * [Earth Lab Drone Manual (including weather documentation protocol)](https://docs.google.com/document/d/1r_OoGRn0J6M--mA5OQc8BaterLIH4j6VHpvokBaC-9o/edit?usp=sharing)
 * [Macrosystems Agenda & Notes](https://docs.google.com/document/d/1VbHkkWsqZzwsUc_j5OC_rxyWmMnrJDK1jKru-RsmRGw)
 
+# Data
+
+Key Macrosystems data relevant to these workflows exist in the following locations:
+* Raw UAS data and processed data is on PetaLibrary at this location:
+```
+/pl/active/earthlab/macrosystem/UAS/
+```
+* Polygons collected from field mapping in the AOP are in the ArcGIS Online hosted feature layer '[aop_macrosystems_data](https://ucboulder.maps.arcgis.com/home/item.html?id=30f2bc7832fe46f9932d78d56a365eff)'
+* Polygons collected from field mapping at UAS sites are in the ArcGIS Online hosted feature layer '[macrosystems_uas_polygons]([https://ucboulder.maps.arcgis.com/home/item.html?id=30f2bc7832fe46f9932d78d56a365eff](https://ucboulder.maps.arcgis.com/home/item.html?id=977bdc9dfc65481ebcb46e87f0d9aae3))'
+* Additional data is located on CyVerse
+
 # Complete List Of Workflows
 This repository includes a number of workflows, both code-based and written. An overview of them is provided below. We recommend accessing lower-level workflows via links in the high level workflows. Upon finishing a low-level workflow, you will be directed back to the workflow you started from.
 
