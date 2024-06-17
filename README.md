@@ -17,7 +17,7 @@ Key Macrosystems data relevant to these workflows exist in the following locatio
 /pl/active/earthlab/macrosystem/UAS/
 ```
 * Polygons collected from field mapping in the AOP are in the ArcGIS Online hosted feature layer '[aop_macrosystems_data](https://ucboulder.maps.arcgis.com/home/item.html?id=30f2bc7832fe46f9932d78d56a365eff)'
-* Polygons collected from field mapping at UAS sites are in the ArcGIS Online hosted feature layer '[macrosystems_uas_polygons]([https://ucboulder.maps.arcgis.com/home/item.html?id=30f2bc7832fe46f9932d78d56a365eff](https://ucboulder.maps.arcgis.com/home/item.html?id=977bdc9dfc65481ebcb46e87f0d9aae3))'
+* Polygons collected from field mapping at UAS sites are in the ArcGIS Online hosted feature layer '[macrosystems_uas_polygons](https://ucboulder.maps.arcgis.com/home/item.html?id=977bdc9dfc65481ebcb46e87f0d9aae3)'
 * Additional data is located on CyVerse
 
 # Complete List Of Workflows
