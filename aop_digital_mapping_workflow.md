@@ -7,7 +7,7 @@ Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps
 2. Identify and record AOP tile names and field map groups
     * [Record YELL NEON Tiles to download for summer 2024 on this spreadsheet](https://docs.google.com/spreadsheets/d/1l3mCbow1SDMhjCer7tvt09IdgSv64sP3qFBSAZ4u7ko/edit#gid=0) 
 4. Access and download AOP tiles
-    * Visit the [NEON Data Explorer and Download Portal (https://data.neonscience.org/data-products/explore)
+    * Visit the [NEON Data Explorer and Download Portal](https://data.neonscience.org/data-products/explore)
     * Find the "High-resolution orthorectified camera imagery mosaic" dataset, by either filtering or using the search bar at left.
     * Click the blue "Download Data" button on the dataset
     * Select your NEON site of interest from the rows of sites. Each NEON site has a 4-letter code associated with it. The codes for the Macrosystems-associated sites are:
