@@ -1,31 +1,35 @@
 # Instructions for creating a tile package
 
-Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we use for our digital mapping workflow. Instructions for this step are below for both ArcGIS Pro and ArcMap (at very bottom). This same process works for creating tile packages regardless of what type of data is being tiled. The only change will be in the tile package parameters (after ArcGIS Pro instructions).
+Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we use for our digital mapping workflows. Instructions for this step are below for both ArcGIS Pro and ArcMap (at very bottom). This same process works for creating tile packages regardless of what type of data is being tiled. The only change will be in the tile package parameters (after ArcGIS Pro instructions).
 
 ## ArcGIS Pro
-* Open orthomosaic(s) in ArcGIS Pro
+1. Open orthomosaic(s) in ArcGIS Pro
   * Create a new “Map” project
   * Go to “Map” tab, “Add data” button, then “Add data”
   * Navigate to geotiff file, select it, then hit “OK”
-    * If you are working with AOP data, load all of the TIF files in the fieldmap group listed
+  * UAS Mapping:
+    * Load both the MicaSense multispectral orthomosaic and the high resolution RGB orthomosaic
+  * AOP Mapping:
+    * Load all of the tiles in the fieldmap group that you are working on. You will create one tile package per fieldmap group.
       * ([See this spreadsheet for YELL summer 2024 tiles](https://docs.google.com/spreadsheets/d/1l3mCbow1SDMhjCer7tvt09IdgSv64sP3qFBSAZ4u7ko/edit#gid=0))
-* Clip to plot area if necessary (unnecessary for Macrosystems)
-* Visualize as desired.
+2. Visualize as desired.
   * AOP RGB imagery: use default visualization
   * Macrosystems MicaSense imagery:
     * MicaSense true color: Use bands R-G-B, numbered 6-4-2
     * MicaSense false color: Use bands NIR-R-G, numbered 10-6-4
   * High resolution RGB UAS imagery: use default visualization
-    * Note that you will need to export a new tile package for each different visualization that you want, since tile packages are essentially a visual snapshot of the data.
-* Remove default base maps from new project (Right click the layer, click “Remove”)
+3. Remove default base maps from new project (Right click the layer, click “Remove”)
   * (Create Map Tile Package does not run with them on)
-* Toggle off the layers you aren’t tiling yet
-* Set Map description property (won’t run without it)
+4. Toggle off the layers you aren’t tiling yet
+  * You will need to export a new tile package for each different visualization that you want, since tile packages are essentially a visual snapshot of the data.
+    * AOP Mapping: You can turn on all tiles at the same time and just make one package
+    * UAS Mapping: You will create 3 tile packages, one for each orthomosaic visualization listed above in step 2
+5. Set Map description property to the plot name or the AOP fieldmap group (won’t run without it)
   * Right click on “Map” in contents pane
   * Metadata -> Properties -> Metadata -> Description (fill in this text box with something descriptive)
-* Use tool: **Create Map Tile Package**
+6. Use tool: **Create Map Tile Package**
   * Set zoom level to appropriate scale [Zoom level to scale converter](https://developers.arcgis.com/documentation/mapping-apis-and-services/reference/zoom-levels-and-scale/#conversion-tool) (see "Tile Package Parameters" section) for more information on parameters)
-* Save and export tile package
+7. Save and export tile package
   * Save the tile packages with the following naming conventions:
     * UAS Data
       * MicaSense false color: [plotNameAndNumber]_MicaSense_falseColor_tile_package
@@ -34,8 +38,8 @@ Tile packages are necessary for using raster data in ArcGIS FieldMaps, which we 
     * AOP Data
       * [AOPCode]_[fieldmapGroup]_AOP_rgb_tile_package
       * (e.g. YELL_riverNorth1_AOP_rgb_tilePackage)
-* Load tile package back into your document to confirm that it generated appropriately
-* Repeat these steps for each layer you would like to be available in FieldMaps
+8. Load tile package back into your document to confirm that it generated appropriately
+9. Repeat these steps for each layer you would like to be available in FieldMaps
 
 
 **Return to [UAS Digital Mapping Workflow](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md).**
