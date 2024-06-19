@@ -25,7 +25,7 @@ This repository includes a number of workflows, both code-based and written. An 
 
 ## High Level Workflows
 * [**uas_digital_mapping_workflow.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/uas_digital_mapping_workflow.md) - This workflow outlines the entire process for generating spectral data samples from UAS for the Macrosystems project. It runs from identifying and creating plots through to usable data and references multiple lower-level workflows
-* **aop_digital_mapping_workflow.md** - This workflow outlines the process for generating spectral data samples from NEON AOP data for the Macrosystems project. It runs from identifying high priority target areas through to usable data and references multiple lower-level workflows.
+* [**aop_digital_mapping_workflow.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/aop_digital_mapping_workflow.md) - This workflow outlines the process for generating spectral data samples from NEON AOP data for the Macrosystems project. It runs from identifying high priority target areas through to usable data and references multiple lower-level workflows.
 
 ## Low Level Workflows
 * [**create_tile_package.md**](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/create_tile_package.md) - This workflow outlines how to create a tile package from a .tif file (e.g. from NEON AOP or UAS raster data)
