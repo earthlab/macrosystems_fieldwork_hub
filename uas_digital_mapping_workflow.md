@@ -9,9 +9,12 @@ Note that this workflow is designed to allow digital mapping on ArcGIS FieldMaps
 4. Go into the field and fly UAS plot (see [UAS Field Protocols](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_field_protocols.md))
    * UAS with MicaSense RedEdge Sensor attached (e.g. Matrice 300 or similar)
    * UAS with high-resolution RGB sensor (e.g. Phantom 4 Pro or DJI Mini2)
-5. Create UAS data file structure and transfer raw data to PetaLibrary (see [UAS Data Structure](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_data_structure.md))
-6. Process UAS data via Metashape on CU Research Computing and transfer back to local (see [workflow for processing UAS data](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/process_uas_data.md))
-7. Visualize the multispectral MicaSense Imagery in two different ways: Real Color & False Color
+5. Post-field tasks:
+   * Create UAS data file structure and transfer raw data to PetaLibrary (see [UAS Data Structure](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/uas_data_structure.md))
+   * Fill out [Macro field tracking document](https://docs.google.com/spreadsheets/d/1HtjINMxrU8guyTSxz_OdsRKZ9KZ4zYN_TVUaIBOXzow/edit?gid=795891802#gid=795891802)
+   * Ensure that [drone data spreadsheet](https://docs.google.com/spreadsheets/d/1KahrdF1yzqLVi6hSEmn4hYBvZXWP1Uupj8Vozob_WtY/edit?gid=0#gid=0) got filled out
+7. Process UAS data via Metashape on CU Research Computing and transfer back to local (see [workflow for processing UAS data](https://github.com/earthlab/macrosystems_fieldwork_hub/blob/main/low-level-workflows/process_uas_data.md))
+8. Visualize the multispectral MicaSense Imagery in two different ways: Real Color & False Color
    * To do so, load the imagery in ArcGIS Pro and then copy the imagery so that you have a second layer.
    * Right click on the imagery and then click 'Symbology' from the menu
    * Change the Red-Green-Blue bands
