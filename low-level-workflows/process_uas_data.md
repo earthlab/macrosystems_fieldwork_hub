@@ -40,7 +40,7 @@ python extract_metadata.py --main_dir [DIRECTORY]
 
 # Transfer data from PetaLibrary to local
 * Create a new directory in your local Macrosystems work folder and name it according to the plot location you are working on (e.g. kremmling_2-06-05-24)
-* Use the below command line code templates to download your finished outputs to this new directory on your local machine. There should be one template below for everyone. Copy the template, and then make the necessary changes. The bolded parts will need to be changed for each plot. Run this command line code from your local machine. You will be asked for your IdentiKey password and then receive a DuoPush.
+* Use the below command line code templates to download your finished outputs to this new directory on your local machine. There should be one template below for everyone. Copy the template, and then make the necessary changes. The parts between the ** will need to be changed for each plot. Run this command line code from your local machine. You will be asked for your IdentiKey password and then receive a DuoPush.
 
 **Adam template**
 ```
