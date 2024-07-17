@@ -46,6 +46,10 @@ python extract_metadata.py --main_dir [DIRECTORY]
 ```
 scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-2024/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/agysi/OneDrive/Desktop/Documents/Macrosystems/**kremmling_2-06-05-24**
 ```
+**Adam Scratch template**
+```
+scp -r adgy2587@login.rc.colorado.edu:/scratch/alpine/tymc5571/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/agysi/OneDrive/Desktop/Documents/Macrosystems/**kremmling_2-06-05-24**
+```
 **Jojo template**
 ```
 scp -r adgy2587@login.rc.colorado.edu:/pl/active/earthlab/macrosystem/UAS/summer-2024/**kremmling_2-06-05-24**/FinalOutputs/ C:/Users/josep/Documents/Macrosystems/**kremmling_2-06-05-24**
