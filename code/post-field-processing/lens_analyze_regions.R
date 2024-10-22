@@ -256,7 +256,7 @@ region_polygons_merged <- region_polygons |>
   sf::st_cast("POLYGON") %>% #split out multipolygons
   dplyr::filter(sf::st_intersects(., conus, sparse = FALSE)) |>
   dplyr::group_by(DomainID, DomainName) |>
-  dplyr::summarise(geom = sf::st_union(geom)) |>
+  dplyr::summarise(geometry = sf::st_union(geometry)) |>
   dplyr::ungroup() |>
   dplyr::arrange(DomainID)
 
@@ -264,7 +264,7 @@ areas_of_interest_merged <- areas_of_interest |>
   sf::st_make_valid() %>% #force validity, duplicate vertex error
   dplyr::filter(sf::st_intersects(., conus, sparse = FALSE)) |>
   dplyr::group_by(domain, domainName) |>
-  dplyr::summarise(geom = sf::st_union(geom)) |>
+  dplyr::summarise(geometry = sf::st_union(geometry)) |>
   dplyr::ungroup() |>
   dplyr::rename(DomainName = domainName) |>
   dplyr::mutate(DomainID = as.integer(substr_right(domain, 2))) |>
