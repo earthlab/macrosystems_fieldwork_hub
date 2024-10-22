@@ -1,0 +1,415 @@
+Clean and finalize AOP & UAS field data for the Macrosystems project
+
+This script performs the following steps:
+-Fixes all species names to ensure in scientific form
+-Ensures that all categories match as they should, fixes where possible, and removes those instances that don't match (reports n removed)
+-Checks for species listed as shrubs AND trees, and fixes them according to manually set rules based on output information
+-Cleans up NAs and formats correctly
+-Filters to only include polygons of a large enough size (manually set; reports n removed)
+
+Tyler L. McIntosh
+CU Boulder CIRES Earth Lab
+Last updated: 12/19/23
+
+This script uses the following naming conventions wherever possible:
+ lowerCamelCase for variables
+ period.separated for functions
+ underscore_separated for files
+
+
+# Set libraries
+
+```{r}
+
+#Select library chunks from R_Libraries.txt and add to "list.of.packages"
+
+######Utility libraries
+utility <- c(
+ 	"tictoc", #benchmarking
+	"beepr", # beep() will make a noise. options(error = beep) will beep on any errors
+	"zip", #For zipping files (does not require external tools). mode = "cherry-pick" to select specific files w/o mirroring directory structure
+	"units", #for managing units
+	"remotes", #to access github
+	"here" #Relative path best practices
+)
+
+#####Data management libraries
+dataManagement <- c(
+	"tidyverse", #Includes: dplyr, forcats, ggplot2, lubridate, purrr, readr, stringr, tibble, tidyr
+	"glue" #Easy string management
+)
+
+#####Geographic libraries
+geographicStandard <- c(
+	"terra",  #New raster data package, documentation pdf here: https://cran.r-project.org/web/packages/terra/terra.pdf
+#When writing rasters, always specify data type to optimize storage & future computation:
+#https://search.r-project.org/CRAN/refmans/raster/html/dataType.html
+	"sf", #New vector package
+	"geos" #topology operations on geometries ('rgeos' package retired in Oct 2023, transition to sf, terra, or geos packages)
+)
+
+#ADD LIBRARY CHUNKS HERE
+list.of.packages <- c(utility, dataManagement, geographicStandard)
+
+```
+
+
+
+# Setup libraries & workspace
+
+```{r}
+
+#Install all CRAN packages that aren't installed yet
+install.packages(setdiff(list.of.packages, rownames(installed.packages())))
+
+#Install all packages from GitHub (if any) using remotes package that aren't installed yet
+if(exists("github")) { #If there are github-dependant packages...
+  library(remotes) #load remotes package
+  for(package in github) {
+    if(! package %in% rownames(installed.packages())) {
+      remotes::install_github(package) #Install package
+    }
+  }
+  #Replace GitHub package names in list.of.packages with the actual name of the package to load
+  github_names <- sub(".*/", "", github)  # Extract names after "/"
+  list.of.packages <- gsub(paste(github, collapse = "|"), github_names, list.of.packages)
+}
+
+#Load all packages
+invisible(lapply(list.of.packages, library, character.only = TRUE)) #use 'invisible' to prevent output being displayed
+
+
+# Clean workspace & set up environment
+here::here() #Check here location
+here::i_am("code/clean_prep_fieldmapped_polygons.Rmd")
+#OR
+#setwd() #Set working directory directly
+options(digits = 6) #Set standard decimal print output
+options(scipen = 999) #Turn scientific notation on and off (0 = on, 999 = off)
+
+```
+
+# Create necessary directories - delete any unnecessary
+
+```{r}
+# Figures directory
+figsDir <- here::here("figs")
+if (!dir.exists(figsDir)){
+  dir.create(figsDir)
+}
+
+#Derived data directory
+datDerDir <- here::here("data/derived")
+if (!dir.exists(datDerDir)){
+  dir.create(datDerDir)
+}
+
+```
+
+
+# Read in data
+
+```{r}
+#Load raw data from ArcGIS Online
+aopPoly <- sf::st_read(here::here('data', 'raw', 'niwot_aop_macrosystems_data_2023_12_8_23.gpkg'))
+uasPoly <- sf::st_read(here::here('data', 'raw', 'macrosystems_uas_polygons_2023_12_13_23.gpkg'))
+
+#Check polygon validity
+unique(sf::st_is_valid(aopPoly))
+unique(sf::st_is_valid(uasPoly))
+
+#Add in attribute to specify what dataset it is (for later joining)
+aopPoly <- aopPoly |>
+  dplyr::mutate(imagery = "AOP")
+uasPoly <- uasPoly |>
+  dplyr::mutate(imagery = "UAS")
+
+```
+# Check for inconsistencies in the data
+
+```{r}
+#Check data
+print("AOP")
+unique(aopPoly$species) #still includes species common names, needs fixed
+unique(aopPoly$cover_category)
+unique(aopPoly$cover_subcategory)
+unique(aopPoly$dead_subcategory)
+
+print("UAS")
+unique(uasPoly$species) #all scientific names, good to go
+unique(uasPoly$cover_category)
+unique(uasPoly$cover_subcategory)
+unique(uasPoly$dead_subcategory)
+
+```
+
+# Fix AOP species data
+
+```{r}
+
+#create species field replacement data (from before scientific species dropdown implementation)
+replacements <- cbind(
+  c("Aspen", "Ponderosa Pine", "Lodgepole Pine", "Fir", "Douglas-Fir", "Pine other", "Spruce", "Juniper", "Limber Pine", "Englemann Spruce", "Subalpine Fir", "Spruce - Unidentified", "Blue Spruce", "Maple", "Pine - Unidentified", "Deciduous - Unidentified", "Rocky Mountain Maple", "Chokecherry", "Other", "Willow", "Thinleaf Alder"),
+  c("Populus tremuloides", "Pinus ponderosa", "Pinus contorta", "Abies", "Pseudotsuga menziesii", "Pinus", "Picea", "Juniperus scopulorum", "Pinus flexilis", "Picea engelmannii", "Abies lasiocarpa", "Picea", "Picea pungens", "Acer glabrum", "Pinus", "Unidentified", "Acer glabrum", "Prunus virginiana", "Other", "Salix", "Alnus tenuifolia")
+) |>
+  as.data.frame() |>
+  `names<-`(c("species", "newSpecies"))
+
+#create 'other_species' field replacement data for AOP (from before scientific species dropdown implementation)
+oReplacements <- cbind(
+  c("Skunkbush Sumac", "Wax Currant ", "Boulder Raspberry ", "Cliff Jamecia ", "Currant", "Common Juniper", "Chokecherry", "Limber pine"),
+  c("Rhus aromatica", "Ribes cereum", "Rubus deliciosus", "Jamesia americana", "Ribes", "Juniperus communis", "Prunus virginiana", "Pinus flexilis")
+) |>
+  as.data.frame() |>
+  `names<-`(c("other_species", "newSpecies"))
+
+#Make replacements in aopPolygons
+aopPoly <- aopPoly |>
+  dplyr::left_join(replacements, by = c("species")) |>
+  dplyr::mutate(species = dplyr::case_when(is.na(newSpecies) ~ species,
+                                    TRUE ~ newSpecies)) |>
+  dplyr::select(-newSpecies) |>
+  dplyr::left_join(oReplacements, by = c("other_species")) |>
+  dplyr::mutate(species = dplyr::case_when(is.na(newSpecies) ~ species,
+                                           TRUE ~ newSpecies)) |>
+  dplyr::select(-newSpecies)
+
+
+unique(aopPoly$species) #fixed!
+filter(aopPoly, !is.na(other_species)) #fixed!
+
+```
+# Check for category matches, fix and remove entries
+
+```{r}
+print("AOP Polygon category sets")
+aopPoly |> dplyr::distinct(cover_category, cover_subcategory, dead_subcategory)
+
+print("UAS Polygon category sets")
+uasPoly |> dplyr::distinct(cover_category, cover_subcategory, dead_subcategory)
+
+
+#There are a few mistakes in both datasets. These are regarding "Dead" and woody shrub subcategories, as well as species for things that shouldn't have them. Function to apply fix and remove rules
+#Fix rules -
+# anything with "Dead" in cover_subcategory should have cover_category == "Non-vegetated & dead"
+# any woody shrubs, or deciduous/evergreen trees should be "Unidentified" species, not NA
+#Remove rules -
+# evergreen : Woody shrub - Broadleaf
+# evergreen : Woody shrub - Needleleaf
+# deciduous : woody shrub - Broadleaf
+# herbaceous : woody shrub - Needleleaf
+# herbaceous : woody shrub - Broadleaf
+# Non-vegetated & dead : Bare : Dead - Woody downed
+# Herbaceous : contains species
+# Non-vegetated & dead : contains species
+clean.remove <- function(dats) {
+  out <- dats |>
+    dplyr::mutate(cover_category = dplyr::case_when(cover_subcategory == "Dead" ~ "Non-vegetated & dead",
+                                                    TRUE ~ cover_category),
+                  species = dplyr::case_when(cover_category == "Woody shrub" & is.na(species) ~ "Unidentified",
+                                                    TRUE ~ species)) |>
+    dplyr::filter(! ((cover_category == "Evergreen" & cover_subcategory == "Woody shrub - Broadleaf") |
+                     (cover_category == "Evergreen" & cover_subcategory == "Woody shrub - Needleleaf") |
+                     (cover_category == "Deciduous" & cover_subcategory == "Woody shrub - Broadleaf") |
+                     (cover_category == "Herbaceous" & cover_subcategory == "Woody shrub - Needleleaf") |
+                     (cover_category == "Herbaceous" & cover_subcategory == "Woody shrub - Broadleaf") |
+                     (cover_subcategory == "Bare" & dead_subcategory == "Dead - Woody downed") |
+                     (cover_category == "Herbaceous" & !is.na(species)) |
+                     (cover_category == "Non-vegetated & dead" & !is.na(species))))
+  return(out)
+}
+
+#Apply function
+aopPolyClean <- aopPoly |> clean.remove()
+uasPolyClean <- uasPoly |> clean.remove()
+
+glue::glue("{nrow(aopPoly) - nrow(aopPolyClean)} polygons were removed from the AOP data")
+glue::glue("{nrow(uasPoly) - nrow(uasPolyClean)} polygons were removed from the UAS data")
+
+```
+
+# Check for species that are recorded as both shrubs and trees and deal with accordingly
+
+```{r}
+aopPolyClean |> dplyr::distinct(cover_category, species) |> dplyr::arrange(species)
+  #Acer glabrum - Rocky Mountain Maple
+
+uasPolyClean |> dplyr::distinct(cover_category, species) |> dplyr::arrange(species)
+  #Juniperus scopulorum - Rocky Mountain Juniper
+  #Quercus gambelii - Gambel oak
+
+#A function to analyze what is going on with the species that are listed as both trees and shrubs
+analyze.shrub.tree.species <- function(speciesNm) {
+  combinedSpecies <- rbind(aopPolyClean |> dplyr::filter(species == speciesNm),
+                           uasPolyClean |> dplyr::filter(species == speciesNm))
+  print(speciesNm)
+  print(glue::glue("There are {nrow(combinedSpecies)} instances of {speciesNm} across both datasets."))
+  print(glue::glue("Of those, {nrow(filter(combinedSpecies, imagery == 'AOP'))} are in the AOP data and {nrow(filter(combinedSpecies, imagery == 'UAS'))} are in the UAS data"))
+  print(glue::glue("{nrow(filter(combinedSpecies, cover_category == 'Woody shrub'))} of the instances are classified as woody shrubs, while {nrow(filter(combinedSpecies, cover_category == 'Evergreen'))} are classified as evergreen trees and {nrow(filter(combinedSpecies, cover_category == 'Deciduous'))} are classified as deciduous trees"))
+  print(glue::glue("{nrow(filter(combinedSpecies, cover_category == 'Woody shrub' & woody_shrub_height == '10cm to 1m'))} of the shrubs are 10cm to 1m, while {nrow(filter(combinedSpecies, cover_category == 'Woody shrub' & woody_shrub_height == 'Over 1m'))} of the shrubs are over 1m"))
+  summary <- c(speciesNm,
+               nrow(combinedSpecies),
+               nrow(filter(combinedSpecies, imagery == 'AOP')),
+               nrow(filter(combinedSpecies, imagery == 'UAS')),
+               nrow(filter(combinedSpecies, cover_category == 'Woody shrub')),
+               nrow(filter(combinedSpecies, cover_category == 'Evergreen')),
+               nrow(filter(combinedSpecies, cover_category == 'Deciduous')),
+               nrow(filter(combinedSpecies, cover_category == 'Woody shrub' & woody_shrub_height == '10cm to 1m')),
+               nrow(filter(combinedSpecies, cover_category == 'Woody shrub' & woody_shrub_height == 'Over 1m'))) |>
+    t() |>
+    as.data.frame() |>
+    `names<-`(c("Species",
+                "Instances",
+                "AOPinstances",
+                "UASinstances",
+                "WoodyShrubInstances",
+                "EvergreenInstances",
+                "DeciduousInstances",
+                "WoodyShrubInstances10cm1m",
+                "WoodyShrubInstancesOver1m"))
+  return(summary)
+}
+
+#Get all information on our shrub-trees
+shrubTreeSummary <- rbind(analyze.shrub.tree.species("Acer glabrum"),
+                          analyze.shrub.tree.species("Juniperus scopulorum"),
+                          analyze.shrub.tree.species("Quercus gambelii"))
+
+#Decision rule function for shrub-tree species
+ #Acer glabrum (Rocky mountain maple) to woody shrub
+ #Juniperus scopulorum (Rocky mountain juniper) to evergreen
+ #Quercus gambelii (Gambel oak) to woody shrub
+fix.shrub.trees <- function(dat) {
+  out <- dat |>
+    dplyr::mutate(cover_category = dplyr::case_when(species == "Acer glabrum"~ "Woody shrub",
+                                                    species == "Juniperus scopulorum" ~ "Evergreen",
+                                                    species == "Quercus gambelii" ~ "Woody shrub",
+                                                    TRUE ~ cover_category))
+  return(out)
+}
+
+#Apply to data
+aopPolyClean <- aopPolyClean |> fix.shrub.trees()
+uasPolyClean <- uasPolyClean |> fix.shrub.trees()
+
+```
+
+# Clean up NA's and create merged land cover attribute for ease of use
+
+```{r}
+
+#Clean up NA's
+replace.na <- function(dat) {
+  return(dat |>
+           dplyr::mutate(dead_subcategory = ifelse(dead_subcategory == "NA", NA, dead_subcategory),
+                         cover_subcategory = ifelse(cover_subcategory == "NA", NA, cover_subcategory)))
+}
+
+#Create a single attribute that combines all of the category and subcategory data
+add.merged.land.cover <- function(dats) {
+  return(dats |> dplyr::mutate(combined_all_category_species = glue::glue("{cover_category}_{cover_subcategory}_{dead_subcategory}_{species}", .na = "", .null = NULL)))
+}
+  
+aopPolyClean <- aopPolyClean |>
+  replace.na() |>
+  add.merged.land.cover()
+uasPolyClean <- uasPolyClean |>
+  replace.na() |>
+  add.merged.land.cover()
+
+
+```
+
+#Filter to only include polygons large enough to be included
+
+```{r}
+#This function takes in a set of polygons and returns the same set of polygons with the area of the polygon added as a column called "stArea", in whatever units the CRS is in
+st.area.to.poly <- function(polys) {
+  out <- polys |>
+    sf::st_area() |> #get area from sf package
+    units::drop_units() %>%
+    cbind(polys, .) |> #join to polygons
+    dplyr::rename(area_m = `.`) #rename
+  return(out)
+}
+
+#Filter to only include polygons over 1 hyperspec pixel (1m^2)
+aopLargeEnoughClean <- aopPolyClean |>
+  st.area.to.poly() |>
+  dplyr::filter(area_m >= 1)
+
+#Filter to only include polygons over 4 micasense pixels (assuming 8cm pixel, or 256cm^2)
+uasLargeEnoughClean <- uasPolyClean |>
+  st.area.to.poly() |>
+  dplyr::filter(area_m >= 0.0256)
+
+glue::glue("{nrow(aopPolyClean) - nrow(aopLargeEnoughClean)} polygons were removed from the AOP data")
+glue::glue("{nrow(uasPolyClean) - nrow(uasLargeEnoughClean)} polygons were removed from the UAS data")
+
+
+aopLargeEnoughClean |> filter(species == "Other")
+
+```
+
+# Create 1/2 minimum diameter polygons sets
+```{r half-diameter}
+
+
+#A function to calculate the approximate diameter of the maximum inscribed circle within an irregular polygon. This diameter will be added to the polygons as 'diam'
+#I.e. an estimate of the 'minimum diameter' of the irregular polygon
+#PARAMETERS
+#polys = an sf object representing polygons
+#tolerance = Threshold for considering circles to be touching a boundary.
+calculate.approx.diameter.maximum.inscribed.circle <- function(polys, tolerance) {
+  max.insc.crcs <- geos::geos_maximum_inscribed_crc(polys |>
+                                                      geos::as_geos_geometry(), tolerance = tolerance) |>
+    sf::st_as_sf() |>
+    sf::st_transform(sf::st_crs(polys))
+  diam <- c()
+  for(i in 1:nrow(max.insc.crcs)) {
+    p <- max.insc.crcs[i,]
+    d <- p |>
+      sf::st_cast('MULTIPOINT') %>%
+      sf::st_cast('POINT') %>%
+      sf::st_distance(which = "Euclidean") |>
+      max()
+    diam <- diam |> append(d)
+  }
+  return(cbind(polys, diam))
+  
+}
+
+#A function that uses 'calculate.approx.diameter.maximum.inscribed.circle'
+#to buffer a set of polygons inwards such that they are 'half-diameter' polygons
+#PARAMETERS
+#polys = an sf object representing polygons
+#tolerance = Threshold for considering circles to be touching a boundary.
+buffer.set.to.half.diam <- function(polys, tolerance) {
+  pWithD <- calculate.approx.diameter.maximum.inscribed.circle(polys, tolerance)
+  newPolys <- pWithD |>
+    dplyr::mutate(SHAPE = sf::st_buffer(SHAPE, dist = (diam / 4) * -1)) |>
+    dplyr::select(-diam)
+  return(newPolys)
+}
+
+#Use function
+uasLargeEnoughCleanHalf <- buffer.set.to.half.diam(uasLargeEnoughClean, 0.01)
+aopLargeEnoughCleanHalf <- buffer.set.to.half.diam(aopLargeEnoughClean, 0.01)
+
+
+
+```
+
+
+# Write out datasets for use
+
+```{r}
+#Write out
+sf::st_write(uasLargeEnoughClean, here::here(datDerDir, "uas_polygons_2023_12_13_23_analysis_ready.gpkg"), append = FALSE)
+sf::st_write(uasLargeEnoughCleanHalf, here::here(datDerDir, "uas_polygons_2023_12_13_23_analysis_ready_half_diam.gpkg"), append = FALSE)
+
+#Write out
+sf::st_write(aopLargeEnoughClean, here::here(datDerDir, "niwot_aop_polygons_2023_12_8_23_analysis_ready.gpkg"), append = FALSE)
+sf::st_write(aopLargeEnoughCleanHalf, here::here(datDerDir, "niwot_aop_polygons_2023_12_8_23_analysis_ready_half_diam.gpkg"), append = FALSE)
+
+```
