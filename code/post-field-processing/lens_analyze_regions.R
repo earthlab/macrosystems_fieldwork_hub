@@ -34,43 +34,56 @@ dir_ensure(dir_raw)
 dir_ensure(dir_derived)
 
 
-#Load data & make available for offline analysis
-raster_path <- here::here(dir_raw, "LC23_EVT_240.tif")
-if(file.exists(raster_path)) {
-  raster <- terra::rast(raster_path)
-} else {
-  tic()
-  raster <- access_landfire_evt_conus_2022()
-  # 2023 - on-campus run time: 250 seconds; cyverse R run time campus: 164 seconds 
-  # 2022 - cyverse R run time campus: 500 seconds
-  toc()
-  terra::writeRaster(raster, raster_path)
-}
+#Stream data sources
+tic()
+raster <- access_landfire_evt_conus_2022()
+# 2023 - on-campus run time: 250 seconds; cyverse R run time campus: 164 seconds 
+# 2022 - cyverse R run time campus: 500 seconds
+toc()
 
-evt_cats_path <- here::here(dir_raw, "evt_cats.csv")
-if(file.exists(evt_cats_path)) {
-  raster_cats <- sf::st_read(evt_cats_path)
-} else {
-  raster_cats <- access_landfire_evt_conus_2022_csv() 
-  readr::write_csv(raster_cats, evt_cats_path)
-}
-
-neon_domains_path <- here::here(dir_raw, "neon_domains.gpkg")
-if(file.exists(neon_domains_path)) {
-  region_polygons <- sf::st_read(neon_domains_path)
-} else {
-  region_polygons <- access_neon_domains_shp()
-  sf::st_write(region_polygons, neon_domains_path)
-}
+raster_cats <- access_landfire_evt_conus_2022_csv() 
+region_polygons <- access_neon_domains_shp()
 #region_polygons <- access_data_epa_l3_ecoregions_vsi()
+areas_of_interest <- access_neon_aop_flight_box_data() #note that flight boxes have the domain data as "D##" instead of just "##"
 
-aop_flight_box_path <- here::here(dir_raw, "aop_flight_boxes.gpkg")
-if(file.exists(aop_flight_box_path)) {
-  areas_of_interest <- sf::st_read(aop_flight_box_path)
-} else {
-  areas_of_interest <- access_neon_aop_flight_box_data() #note that flight boxes have the domain data as "D##" instead of just "##"
-  sf::st_write(areas_of_interest, aop_flight_box_path)
-}
+# 
+# #Load data & make available for offline analysis
+# raster_path <- here::here(dir_raw, "LC23_EVT_240.tif")
+# if(file.exists(raster_path)) {
+#   raster <- terra::rast(raster_path)
+# } else {
+#   tic()
+#   raster <- access_landfire_evt_conus_2022()
+#   # 2023 - on-campus run time: 250 seconds; cyverse R run time campus: 164 seconds 
+#   # 2022 - cyverse R run time campus: 500 seconds
+#   toc()
+#   terra::writeRaster(raster, raster_path)
+# }
+# 
+# evt_cats_path <- here::here(dir_raw, "evt_cats.csv")
+# if(file.exists(evt_cats_path)) {
+#   raster_cats <- sf::st_read(evt_cats_path)
+# } else {
+#   raster_cats <- access_landfire_evt_conus_2022_csv() 
+#   readr::write_csv(raster_cats, evt_cats_path)
+# }
+# 
+# neon_domains_path <- here::here(dir_raw, "neon_domains.gpkg")
+# if(file.exists(neon_domains_path)) {
+#   region_polygons <- sf::st_read(neon_domains_path)
+# } else {
+#   region_polygons <- access_neon_domains_shp()
+#   sf::st_write(region_polygons, neon_domains_path)
+# }
+# #region_polygons <- access_data_epa_l3_ecoregions_vsi()
+# 
+# aop_flight_box_path <- here::here(dir_raw, "aop_flight_boxes.gpkg")
+# if(file.exists(aop_flight_box_path)) {
+#   areas_of_interest <- sf::st_read(aop_flight_box_path)
+# } else {
+#   areas_of_interest <- access_neon_aop_flight_box_data() #note that flight boxes have the domain data as "D##" instead of just "##"
+#   sf::st_write(areas_of_interest, aop_flight_box_path)
+# }
 
 areas_of_interest <- areas_of_interest |>
   sf::st_transform(sf::st_crs(region_polygons))
@@ -327,6 +340,14 @@ region_shape <- region_polygons |>
 
 aoi_shape <- areas_of_interest |>
   dplyr::filter(siteID == "NIWO")
+
+tshape <- areas_of_interest |>
+  dplyr::filter(siteID == "NIWO") |>
+  sf::st_transform(terra::crs(raster))
+
+t <- terra::clip
+
+
   
 tic()
 results <- representative_categorical_cover_analysis(raster = raster,
