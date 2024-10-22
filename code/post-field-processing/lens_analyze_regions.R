@@ -40,7 +40,7 @@ if(file.exists(raster_path)) {
   raster <- terra::rast(raster_path)
 } else {
   tic()
-  raster <- access_landfire_evt_conus_2023() # on-campus run time: 250 seconds
+  raster <- access_landfire_evt_conus_2023() # on-campus run time: 250 seconds; cyverse R run time: 164 seconds 
   toc()
   terra::writeRaster(raster, raster_path)
 }
