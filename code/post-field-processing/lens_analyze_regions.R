@@ -40,7 +40,9 @@ if(file.exists(raster_path)) {
   raster <- terra::rast(raster_path)
 } else {
   tic()
-  raster <- access_landfire_evt_conus_2023() # on-campus run time: 250 seconds; cyverse R run time: 164 seconds 
+  raster <- access_landfire_evt_conus_2022()
+  # 2023 - on-campus run time: 250 seconds; cyverse R run time campus: 164 seconds 
+  # 2022 - cyverse R run time campus: 500 seconds
   toc()
   terra::writeRaster(raster, raster_path)
 }
@@ -49,7 +51,7 @@ evt_cats_path <- here::here(dir_raw, "evt_cats.csv")
 if(file.exists(evt_cats_path)) {
   raster_cats <- sf::st_read(evt_cats_path)
 } else {
-  raster_cats <- access_landfire_evt_conus_2023_csv() 
+  raster_cats <- access_landfire_evt_conus_2022_csv() 
   readr::write_csv(raster_cats, evt_cats_path)
 }
 
@@ -473,7 +475,7 @@ read_spatial_subset_local_raster <- function(path, shp) {
 
 
 
-
+system(paste("gdalinfo", "https://www.landfire.gov/data-downloads/US_230/LF2022_EVT_230_CONUS.zip"))
 
 
 

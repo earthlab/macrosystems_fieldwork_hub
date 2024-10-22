@@ -705,6 +705,60 @@ access_landfire_evt_conus_2023_csv <- function() {
   return(lf_evt_csv)
 }
 
+#' Access LANDFIRE EVT Raster for CONUS (2022)
+#'
+#' This function remotely accesses and reads the 2022 LANDFIRE Existing Vegetation Type (EVT) raster data for the contiguous United States (CONUS). The data is accessed directly from a zipped online source using GDAL's VSI (Virtual File System) protocol.
+#'
+#' @details
+#' The function utilizes GDAL's virtual file system (`/vsizip/vsicurl/`) to remotely access the LANDFIRE EVT raster file without needing to download or unzip it manually. The raster data is read into a `terra` raster object, suitable for geospatial analysis in R.
+#'
+#' @return
+#' A `terra` raster object containing the 2022 LANDFIRE EVT data for CONUS.
+#'
+#' @examples
+#' \dontrun{
+#' lf_evt <- access_landfire_evt_conus_2022()
+#' plot(lf_evt)
+#' }
+#' 
+#' @importFrom terra rast
+#' @export
+access_landfire_evt_conus_2022 <- function() {
+  lf_evt <- paste0(
+    "/vsizip/vsicurl/", #magic remote connection
+    "https://landfire.gov/data-downloads/US_230/LF2022_EVT_230_CONUS.zip", #copied link to download location
+    "/LF2022_EVT_230_CONUS/Tif/LC22_EVT_230.tif") |> #path inside zip file
+    terra::rast()
+  return(lf_evt)
+}
+
+#' Access LANDFIRE EVT CSV for CONUS (2022)
+#'
+#' This function remotely accesses and reads the 2022 LANDFIRE Existing Vegetation Type (EVT) CSV data for the contiguous United States (CONUS). The data is accessed directly from a zipped online source using GDAL's VSI (Virtual File System) protocol.
+#'
+#' @details
+#' This function uses GDAL's virtual file system (`/vsizip/vsicurl/`) to remotely access the LANDFIRE EVT CSV data without manual download or extraction. The CSV is read into an `sf` object using `sf::st_read()`, as GDAL's CSV handling is supported by spatial data functions. This method is necessary since standard R CSV readers do not natively support remote access via VSI.
+#'
+#' @return
+#' An `sf` object containing the CSV data from the 2022 LANDFIRE EVT for CONUS.
+#'
+#' @examples
+#' \dontrun{
+#' lf_evt_csv <- access_landfire_evt_conus_2022_csv()
+#' head(lf_evt_csv)
+#' }
+#' 
+#' @importFrom sf st_read
+#' @export
+access_landfire_evt_conus_2022_csv <- function() {
+  lf_evt_csv <- paste0(
+    "/vsizip/vsicurl/", #magic remote connection
+    "https://landfire.gov/data-downloads/US_230/LF2022_EVT_230_CONUS.zip", #copied link to download location
+    "/LF2022_EVT_230_CONUS/CSV_Data/LF22_EVT_230.csv") |> #path inside zip file
+    sf::st_read() #note that read_csv and other csv drivers in R don't talk to GDAL. Instead use st_read or terra::vect() to access CSV data in zip files
+  return(lf_evt_csv)
+}
+
 ## NEON ----
 
 #' Access AOP Flight Box Data
