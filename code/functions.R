@@ -58,6 +58,219 @@ condense_freq_groups <- function(freq_dats) {
 
 
 
+#out_rast_values = "BOTH", "PERC_COVER", or "RAW"
+representative_categorical_cover_analysis <- function(raster,
+                                                      raster_cat_df,
+                                                      region_shape,
+                                                      aoi_shape,
+                                                      region_name = "Not Provided",
+                                                      cat_base_column_name, 
+                                                      aoi_drop_perc = NA,
+                                                      region_drop_perc = NA,
+                                                      drop_classes = NA,
+                                                      drop_classes_column_name = NA,
+                                                      out_rast_values = "BOTH",
+                                                      out_dir = "") {
+  
+  print(paste0("Operating on region: ", region_name))
+  
+  #Setup output directories
+  clean_region_name <- region_name %>%
+    gsub(" ", "", .) %>%
+    gsub("/", "_", .)
+  clean_aoi_dp <- gsub("\\.", "", as.character(aoi_drop_perc))
+  clean_region_dp <- gsub("\\.", "", as.character(region_drop_perc))
+  clean_run_name <- paste(clean_region_name, "_adp", clean_aoi_dp, "_rdp", clean_region_dp, sep = "")
+  out_dir <- here::here(out_dir, clean_run_name)
+  dir_ensure(out_dir)
+  
+  # Crop sub-regions for analysis
+  print('Cropping to region')
+  larger_region_cover <- crop_careful_universal(raster = raster, vector = region_shape, mask = TRUE, verbose = FALSE) 
+  print(paste0('Cropping to sub-region aoi'))
+  aoi_cover <- crop_careful_universal(raster = larger_region_cover, vector = aoi_shape, mask = TRUE, verbose = FALSE)
+  
+  # Analyze
+  landcover_analysis_output_raw <- analyze_categorical_cover(aoi_raster = aoi_cover,
+                                                             larger_region_raster = larger_region_cover,
+                                                             raster_cat_df = raster_cat_df,
+                                                             cat_base_column = cat_base_column_name)
+  landcover_analysis_output_included <- landcover_analysis_output_raw
+  
+  # Remove any classes that are below the regional drop percentage, if specified
+  # This is to keep data clean for rasters with many categories that are not common on the landscape
+  if(!is.na(region_drop_perc)) {
+    landcover_analysis_output_included <- landcover_analysis_output_included |>
+      dplyr::filter(region_perc > region_drop_perc)
+  }
+  
+  # Remove any specifically called out classes
+  if (length(drop_classes) > 0 && !all(is.na(drop_classes))) {
+    drop_classes_col_sym <- rlang::sym(drop_classes_column_name)
+    landcover_analysis_output_included <- landcover_analysis_output_included |>
+      dplyr::filter(!(.data[[drop_classes_column_name]] %in% drop_classes))
+  }
+  
+  # Remove classes that are below a certain AOI percentage (i.e. that are not adequately represented within the aoi)
+  if(!is.na(aoi_drop_perc)) {
+    df_represented <- landcover_analysis_output_included |>
+      dplyr::filter(aoi_perc > aoi_drop_perc)
+    df_not_represented <- landcover_analysis_output_included |>
+      dplyr::filter(aoi_perc <= aoi_drop_perc)
+  }
+  
+  #Get percentage of area not represented (only taking into account areas included)
+  perc_area_not_represented <- (sum(df_not_represented$region_count) / sum(landcover_analysis_output_included$region_count)) * 100
+  
+  # Generate new raster and return data frame AND new raster
+  print('Generating new rasters: Raster not represented')
+  raster_not_represented <- keep_tif_values_in_df(raster = larger_region_cover, df = df_not_represented)
+  
+  if(out_rast_values == "RAW" | out_rast_values == "BOTH") {
+    terra::writeRaster(raster_not_represented,
+                       here::here(out_dir, paste0(clean_run_name, "_not_rep_raw.tif")),
+                       overwrite = TRUE)
+  }
+  
+  if(out_rast_values == "BOTH" | out_rast_values == "PERC_COVER") {
+    print("Reclassifying output raster to use landscape percentage")
+    not_rep_classify <- df_not_represented |>
+      dplyr::select({{cat_base_column_name}}, region_perc) |>
+      as.matrix()
+    raster_not_represented <- raster_not_represented |>
+      terra::classify(not_rep_classify)
+    terra::writeRaster(raster_not_represented,
+                       here::here(out_dir, paste0(clean_run_name, "_not_rep_perc_cover.tif")),
+                       overwrite = TRUE)
+  }
+  
+  rm(raster_not_represented)
+  gc()
+  
+  print('Generating new rasters: Raster represented')
+  raster_represented <- keep_tif_values_in_df(raster = larger_region_cover, df = df_represented)
+  
+  if(out_rast_values == "RAW" | out_rast_values == "BOTH") {
+    terra::writeRaster(raster_represented,
+                       here::here(out_dir, paste0(clean_run_name, "_rep_raw.tif")),
+                       overwrite = TRUE)
+  }
+  
+  if(out_rast_values == "BOTH" | out_rast_values == "PERC_COVER") {
+    print("Reclassifying output raster to use landscape percentage")
+    
+    rep_classify <- df_represented |>
+      dplyr::select({{cat_base_column_name}}, region_perc) |>
+      as.matrix()
+    raster_represented <- raster_represented |>
+      terra::classify(rep_classify)
+    terra::writeRaster(raster_represented,
+                       here::here(out_dir, paste0(clean_run_name, "_rep_perc_cover.tif")),
+                       overwrite = TRUE)
+  }
+  
+  rm(raster_represented)
+  gc()
+  
+  return(list(analysis_name = region_name,
+              df_raw = landcover_analysis_output_raw,
+              df_included = landcover_analysis_output_included,
+              df_represented = df_represented,
+              df_not_represented = df_not_represented,
+              perc_area_not_represented = perc_area_not_represented))
+}
+
+
+## Function to analyze landcover comparisons between AOI and a larger region.
+# It will return a dataframe with columns for region_cover and aoi_cover
+# both raw and in percentage of the total region and percentage of the aoi.
+# The function will join the raster categorical data to the frequencies,
+# and group the data and summarize it if desired based on a column of interest 
+#aoiCover - land cover raster for the smaller region of interest
+#regionCover - land cover raster for a region
+# group: whether to group the data or not (TRUE, FALSE) - note that if grouped, all other columns from cats will be dropped, and the output will no longer have the associated raster values
+analyze_categorical_cover <- function(aoi_raster, larger_region_raster, raster_cat_df, cat_base_column_name, group = FALSE, cat_group_column_name = NA) {
+  
+  #Get frequencies & ensure that freq tables are clean
+  print("Getting frequencies")
+  aoi_freq <- terra::freq(aoi_raster) |>
+    dplyr::select(-layer) |>
+    condense_freq_groups()
+  region_freq <- terra::freq(larger_region_raster) |>
+    dplyr::select(-layer) |>
+    condense_freq_groups()
+  
+  # Join together
+  all_freqs <- region_freq |>
+    dplyr::full_join(aoi_freq, by = c("value")) |>
+    dplyr::mutate_if(is.numeric, coalesce, 0) |> #remove NAs
+    dplyr::filter(value != 0) # remove background
+  
+  
+  cat_base_column_sym <- rlang::sym(cat_base_column_name)
+  
+  names(all_freqs) <- c(cat_base_column_name,
+                        "region_count",
+                        "aoi_count")
+
+  # Join raster cat codes
+  
+  #Ensure both columns are numeric
+  raster_cat_df <- raster_cat_df |>
+    dplyr::mutate({{cat_base_column_sym}} := as.numeric({{cat_base_column_sym}}))
+  all_freqs <- all_freqs |>
+    dplyr::mutate({{cat_base_column_sym}} := as.numeric({{cat_base_column_sym}}))
+  
+  all_freqs <- all_freqs |>
+    dplyr::left_join(raster_cat_df, by = cat_base_column_name)
+  
+  
+  # Perform grouping summarization on group of choice if desired
+  if(group) {
+    cat_group_column_sym <- rlang::sym(cat_group_column_name)
+    all_freqs <- all_freqs |>
+      dplyr::group_by({{cat_group_column_sym}}) |>
+      dplyr::summarise(region_count = sum(region_count),
+                       aoi_count = sum(aoi_count)) |>
+      dplyr::ungroup()
+  }
+  
+  
+  # Add percentages and differences for analysis
+  print("Calculating percentages")
+  all_freqs <- all_freqs |>
+    dplyr::mutate(region_perc = 100 * (region_count / sum(all_freqs$region_count)),
+                  aoi_perc = 100 * (aoi_count / sum(all_freqs$aoi_count)),
+                  diff_in_perc = region_perc - aoi_perc,
+                  diff_in_num = region_count - aoi_perc)
+  
+  # Arrange and return
+  all_freqs <- all_freqs |>
+    dplyr::arrange(dplyr::desc(diff_in_perc))
+  
+  return(all_freqs)
+}
+
+
+
+
+# A function to create the new raster; all values in df will now be NA
+# TIF must contain a column titled "VALUE"
+keep_tif_values_in_df <- function(raster, df) {
+  # values_not_in_df <- !terra::values(raster) %in% df$VALUE
+  # new_raster <- raster
+  # values(new_raster)[values_not_in_df] <- NA
+  # 
+  # rm(values_not_in_df)
+  
+  new_raster <- terra::ifel(raster %in% df$VALUE, raster, NA)
+  
+  #Maintain old cats
+  c <- terra::cats(raster)[[1]]
+  levels(new_raster) <- c
+  
+  return(new_raster)
+}
 
 # Generating AOP tile polygons ----
 
@@ -720,15 +933,32 @@ access_landfire_evt_conus_2023_csv <- function() {
 #' lf_evt <- access_landfire_evt_conus_2022()
 #' plot(lf_evt)
 #' }
-#' 
+#' @param access Either "stream" or "download". "stream" will use VSI to access the dataset remotely.
+#' "download" will check if the data is present within the directory given at dir_path, and, if not there, will download it before accessing it.
+#'
 #' @importFrom terra rast
 #' @export
-access_landfire_evt_conus_2022 <- function() {
-  lf_evt <- paste0(
-    "/vsizip/vsicurl/", #magic remote connection
-    "https://landfire.gov/data-downloads/US_230/LF2022_EVT_230_CONUS.zip", #copied link to download location
-    "/LF2022_EVT_230_CONUS/Tif/LC22_EVT_230.tif") |> #path inside zip file
-    terra::rast()
+access_landfire_evt_conus_2022 <- function(access = "stream", dir_path = NA) {
+  
+  if(access == "stream") {
+    lf_evt <- paste0(
+      "/vsizip/vsicurl/", #magic remote connection
+      "https://landfire.gov/data-downloads/US_230/LF2022_EVT_230_CONUS.zip", #copied link to download location
+      "/LF2022_EVT_230_CONUS/Tif/LC22_EVT_230.tif") |> #path inside zip file
+      terra::rast()
+  }
+  if(access == "download") {
+    loc <- here::here(dir_path, "LF2022_EVT_230_CONUS/LF2022_EVT_230_CONUS/Tif/LC22_EVT_230.tif")
+    if(file.exists(loc)) {
+      lf_evt <- terra::rast(loc)
+    } else {
+      download_unzip_file(url = "https://landfire.gov/data-downloads/US_230/LF2022_EVT_230_CONUS.zip",
+                          extract_to = dir_path,
+                          keep_zip = FALSE)
+      lf_evt <- terra::rast(loc)
+    }
+  }
+
   return(lf_evt)
 }
 
@@ -1469,3 +1699,126 @@ substr_right <- function(str, n) {
   
   return(substr(str, nchar(str) - n + 1, nchar(str)))
 }
+
+#' Download and Unzip a File
+#'
+#' Downloads a ZIP file from a specified URL and extracts its contents to a specified directory.
+#' Optionally, the ZIP file can be retained after extraction.
+#'
+#' @param url Character. The URL of the ZIP file to download.
+#' @param extract_to Character. The directory where the contents should be extracted.
+#' @param keep_zip Logical. If `TRUE`, retains the ZIP file after extraction. Defaults to `FALSE`.
+#'
+#' @return Invisible `NULL`. The function is used for its side effects of downloading and extracting files.
+#'
+#' @details The function downloads a ZIP file from a URL and extracts its contents to a specified directory.
+#' If `keep_zip` is set to `FALSE`, the ZIP file will be deleted after extraction.
+#'
+#' @importFrom utils download.file unzip
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' download_unzip_file("https://example.com/data.zip", "path/to/extract", keep_zip = TRUE)
+#' }
+download_unzip_file <- function(url, extract_to, keep_zip = FALSE) {
+  # Validate URL and extraction path
+  if (!is.character(url) || length(url) != 1) stop("`url` must be a single character string.")
+  if (!is.character(extract_to) || length(extract_to) != 1) stop("`extract_to` must be a single character string.")
+  if (!is.logical(keep_zip) || length(keep_zip) != 1) stop("`keep_zip` must be a single logical value.")
+  
+  # Ensure the extraction directory exists
+  if (!dir.exists(extract_to)) dir.create(extract_to, recursive = TRUE)
+  
+  # Determine the path to save the ZIP file
+  zip_path <- if (keep_zip) {
+    # Save the ZIP file to the specified extraction directory
+    file.path(extract_to, basename(url))
+  } else {
+    # Use a temporary file path for the ZIP file
+    tempfile(fileext = ".zip")
+  }
+  
+  # Attempt to download the ZIP file
+  tryCatch({
+    download.file(url, zip_path, mode = "wb")
+  }, error = function(e) {
+    stop("Failed to download the file from the specified URL: ", e$message)
+  })
+  
+  # Attempt to unzip the file to the specified extraction directory
+  tryCatch({
+    unzip(zip_path, exdir = extract_to)
+  }, error = function(e) {
+    stop("Failed to unzip the file: ", e$message)
+  })
+  
+  # Delete the ZIP file if 'keep_zip' is FALSE
+  if (!keep_zip) {
+    unlink(zip_path)
+  }
+  
+  invisible(NULL)
+}
+
+#' Merge a List of Raster Files and Optionally Write to Disk
+#'
+#' Merges a list of raster files into a single raster object. The merged raster can either
+#' be saved to a specified file path or returned as an in-memory object.
+#'
+#' @param file_list Character vector. A list of file paths to the raster files to be merged.
+#' @param file_final_path Character. The file path where the merged raster will be saved if `write = TRUE`.
+#' @param datatype Character. The data type of the output raster. Defaults to `"INT2U"`.
+#' @param compress Logical. If `TRUE`, compresses the output file with DEFLATE compression when writing to disk. Defaults to `TRUE`.
+#' @param write Logical. If `TRUE`, writes the merged raster to `file_final_path`. If `FALSE`, returns the merged raster in memory. Defaults to `TRUE`.
+#'
+#' @return If `write = TRUE`, returns invisible `NULL` after writing to disk. If `write = FALSE`, returns the merged raster object.
+#'
+#' @details This function reads a list of raster files, merges them, and either writes the merged raster to a specified path
+#' or returns it in memory. Compression is available when writing to disk to reduce file size.
+#'
+#' @importFrom purrr map
+#' @importFrom terra rast sprc merge writeRaster
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' file_paths <- c("path/to/raster1.tif", "path/to/raster2.tif")
+#' # To write to disk
+#' merge_list_of_rasters(file_paths, "path/to/final_raster.tif", datatype = "FLT4S", compress = TRUE, write = TRUE)
+#' # To return in memory
+#' merged_raster <- merge_list_of_rasters(file_paths, write = FALSE)
+#' }
+merge_list_of_rasters <- function(file_list, file_final_path = NULL, datatype = "INT2U", compress = TRUE, write = TRUE) {
+  # Validate inputs
+  if (!is.character(file_list) || length(file_list) < 1) stop("`file_list` must be a non-empty character vector.")
+  if (write && (is.null(file_final_path) || !is.character(file_final_path) || length(file_final_path) != 1)) {
+    stop("When `write = TRUE`, `file_final_path` must be a single, non-null character string.")
+  }
+  if (!is.logical(compress) || length(compress) != 1) stop("`compress` must be a single logical value.")
+  if (!is.logical(write) || length(write) != 1) stop("`write` must be a single logical value.")
+  
+  # Load and merge the rasters
+  combined_rasters <- file_list |>
+    purrr::map(~ terra::rast(.x)) |>
+    terra::sprc() |>
+    terra::merge()
+  
+  # Write or return the merged raster
+  if (write) {
+    if (compress) {
+      terra::writeRaster(combined_rasters,
+                         file_final_path,
+                         datatype = datatype,
+                         gdal = c("COMPRESS=DEFLATE"))
+    } else {
+      terra::writeRaster(combined_rasters,
+                         file_final_path,
+                         datatype = datatype)
+    }
+    invisible(NULL)  # Return NULL after writing to disk
+  } else {
+    return(combined_rasters)  # Return the merged raster in memory
+  }
+}
+
