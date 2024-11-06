@@ -1,3 +1,5 @@
+# Tyler L. McIntosh
+
 # Landscape representativeness ----
 
 # Function to get presence of a raster value within NEON base plots
@@ -59,30 +61,36 @@ condense_freq_groups <- function(freq_dats) {
 
 
 #out_rast_values = "BOTH", "PERC_COVER", or "RAW"
+#out_rast_type = "BOTH", "REP", "NOT_REP", or "NONE"
 representative_categorical_cover_analysis <- function(raster,
                                                       raster_cat_df,
                                                       region_shape,
                                                       aoi_shape,
-                                                      region_name = "Not Provided",
+                                                      run_name = "Not Provided",
                                                       cat_base_column_name, 
                                                       aoi_drop_perc = NA,
                                                       region_drop_perc = NA,
                                                       drop_classes = NA,
                                                       drop_classes_column_name = NA,
                                                       out_rast_values = "BOTH",
-                                                      out_dir = "") {
+                                                      out_rast_type = "BOTH",
+                                                      out_dir = "",
+                                                      new_sub_dir = FALSE) {
   
-  print(paste0("Operating on region: ", region_name))
+  print(paste0("Operating on run: ", run_name))
   
   #Setup output directories
-  clean_region_name <- region_name %>%
+  clean_run_name <- run_name %>%
     gsub(" ", "", .) %>%
     gsub("/", "_", .)
   clean_aoi_dp <- gsub("\\.", "", as.character(aoi_drop_perc))
   clean_region_dp <- gsub("\\.", "", as.character(region_drop_perc))
-  clean_run_name <- paste(clean_region_name, "_adp", clean_aoi_dp, "_rdp", clean_region_dp, sep = "")
-  out_dir <- here::here(out_dir, clean_run_name)
-  dir_ensure(out_dir)
+  clean_run_name <- paste(clean_run_name, "_adp", clean_aoi_dp, "_rdp", clean_region_dp, sep = "")
+  
+  if(new_sub_dir) {
+    out_dir <- here::here(out_dir, clean_run_name)
+    dir_ensure(out_dir)
+  }
   
   # Crop sub-regions for analysis
   print('Cropping to region')
@@ -122,57 +130,71 @@ representative_categorical_cover_analysis <- function(raster,
   #Get percentage of area not represented (only taking into account areas included)
   perc_area_not_represented <- (sum(df_not_represented$region_count) / sum(landcover_analysis_output_included$region_count)) * 100
   
-  # Generate new raster and return data frame AND new raster
-  print('Generating new rasters: Raster not represented')
-  raster_not_represented <- keep_tif_values_in_df(raster = larger_region_cover, df = df_not_represented)
+  # Generate new raster data requested
   
-  if(out_rast_values == "RAW" | out_rast_values == "BOTH") {
-    terra::writeRaster(raster_not_represented,
-                       here::here(out_dir, paste0(clean_run_name, "_not_rep_raw.tif")),
-                       overwrite = TRUE)
-  }
-  
-  if(out_rast_values == "BOTH" | out_rast_values == "PERC_COVER") {
-    print("Reclassifying output raster to use landscape percentage")
-    not_rep_classify <- df_not_represented |>
-      dplyr::select({{cat_base_column_name}}, region_perc) |>
-      as.matrix()
-    raster_not_represented <- raster_not_represented |>
-      terra::classify(not_rep_classify)
-    terra::writeRaster(raster_not_represented,
-                       here::here(out_dir, paste0(clean_run_name, "_not_rep_perc_cover.tif")),
-                       overwrite = TRUE)
-  }
-  
-  rm(raster_not_represented)
-  gc()
-  
-  print('Generating new rasters: Raster represented')
-  raster_represented <- keep_tif_values_in_df(raster = larger_region_cover, df = df_represented)
-  
-  if(out_rast_values == "RAW" | out_rast_values == "BOTH") {
-    terra::writeRaster(raster_represented,
-                       here::here(out_dir, paste0(clean_run_name, "_rep_raw.tif")),
-                       overwrite = TRUE)
-  }
-  
-  if(out_rast_values == "BOTH" | out_rast_values == "PERC_COVER") {
-    print("Reclassifying output raster to use landscape percentage")
+  #Not represented areas
+  if(out_rast_type == "BOTH" | out_rast_type == "NOT_REP") {
+    print('Generating new rasters: Raster not represented')
+    raster_not_represented <- keep_tif_values_in_df(raster = larger_region_cover, df = df_not_represented)
     
-    rep_classify <- df_represented |>
-      dplyr::select({{cat_base_column_name}}, region_perc) |>
-      as.matrix()
-    raster_represented <- raster_represented |>
-      terra::classify(rep_classify)
-    terra::writeRaster(raster_represented,
-                       here::here(out_dir, paste0(clean_run_name, "_rep_perc_cover.tif")),
-                       overwrite = TRUE)
+    if(out_rast_values == "RAW" | out_rast_values == "BOTH") {
+      terra::writeRaster(raster_not_represented,
+                         here::here(out_dir, paste0(clean_run_name, "_not_rep_raw.tif")),
+                         overwrite = TRUE)
+    }
+    
+    if(out_rast_values == "BOTH" | out_rast_values == "PERC_COVER") {
+      print("Reclassifying output raster to use landscape percentage")
+      not_rep_classify <- df_not_represented |>
+        dplyr::select({{cat_base_column_name}}, region_perc) |>
+        as.matrix()
+      raster_not_represented <- raster_not_represented |>
+        terra::classify(not_rep_classify)
+      terra::writeRaster(raster_not_represented,
+                         here::here(out_dir, paste0(clean_run_name, "_not_rep_perc_cover.tif")),
+                         overwrite = TRUE)
+    }
+    
+    rm(raster_not_represented)
+    gc()
+  }
+    
+  # represented areas
+  if(out_rast_type == "BOTH" | out_rast_type == "REP") {
+    
+    print('Generating new rasters: Raster represented')
+    raster_represented <- keep_tif_values_in_df(raster = larger_region_cover, df = df_represented)
+    
+    if(out_rast_values == "RAW" | out_rast_values == "BOTH") {
+      terra::writeRaster(raster_represented,
+                         here::here(out_dir, paste0(clean_run_name, "_rep_raw.tif")),
+                         overwrite = TRUE)
+    }
+    
+    if(out_rast_values == "BOTH" | out_rast_values == "PERC_COVER") {
+      print("Reclassifying output raster to use landscape percentage")
+      
+      rep_classify <- df_represented |>
+        dplyr::select({{cat_base_column_name}}, region_perc) |>
+        as.matrix()
+      raster_represented <- raster_represented |>
+        terra::classify(rep_classify)
+      terra::writeRaster(raster_represented,
+                         here::here(out_dir, paste0(clean_run_name, "_rep_perc_cover.tif")),
+                         overwrite = TRUE)
+    }
+    
+    rm(raster_represented)
+    gc()
+  
   }
   
-  rm(raster_represented)
-  gc()
+  # no rasters
+  if(out_rast_type == "NONE") {
+    print("You have not requested a written output raster, returning only in-memory non-spatial data")
+  }
   
-  return(list(analysis_name = region_name,
+  return(list(analysis_name = run_name,
               df_raw = landcover_analysis_output_raw,
               df_included = landcover_analysis_output_included,
               df_represented = df_represented,
@@ -271,6 +293,216 @@ keep_tif_values_in_df <- function(raster, df) {
   
   return(new_raster)
 }
+
+# Generating plots ----
+
+
+# A function to randomly generate aop locations for Macrosystems
+# PARAMETERS
+# aop :: the aop area(s) of interest, as an sf object
+# lc :: the landcover file to use for selections, as a SpatRaster
+# numPlotsEach :: the number of plots to select for each landcover type present in the lc file
+# name :: the human-readable name of the function run, which will be added to file paths (e.g. "Bend")
+# lcName :: the human-readable name of the landcover tif (e.g. evt5window)
+# outDir :: the directory to output data to
+# sma :: the surface management agency. "USFS" or other string
+generate_aop_plots <- function(aop,
+                               lc,
+                               numPlotsEach,
+                               name,
+                               lcName,
+                               outDir,
+                               sma = "USFS",
+                               distFromRoadsMax) {
+  
+  epsg <- "EPSG:5070" #Albers equal area
+  
+  
+  #Create operating area
+  reasonableAreasOfAccess <- sf::st_read(here::here("data/manual/reasonable_areas_of_access.gpkg")) |>  #these are manually created areas of access. For YELL it is from create_yell_neon_aoi.R
+    sf::st_transform(epsg) |>
+    dplyr::mutate(grp = 1) |>
+    dplyr::group_by(grp) |>
+    dplyr::summarise(geom = st_union(geom)) |>
+    dplyr::ungroup()
+  
+  genOpArea <- aop |>
+    sf::st_transform(epsg) |>
+    dplyr::mutate(group = 1) |>
+    dplyr::group_by(group) |>
+    dplyr::summarise(geometry = st_union(geometry)) |>
+    dplyr::ungroup() |>
+    sf::st_buffer(-50) |>
+    sf::st_intersection(reasonableAreasOfAccess) |>
+    dplyr::select(-group, -grp)
+  
+  
+  #Access slope
+  slope <- access_us_slope(slopeF = here::here('data/raw', 'usa_slope.tif')) #DEM Data
+  # Clip slope
+  thisSlope <- slope |>
+    crop_careful_universal(aop, mask = TRUE, verbose = FALSE) |>
+    terra::project(epsg)
+  
+  #Access roads
+  roads <- access_osm_roads(aoi = genOpArea)
+  
+  
+  #Buffer roads
+  bigRoadBuff <- roads |> sf::st_buffer(distFromRoadsMax)
+  
+  #Surface Management Agency (SMA)
+  
+  if(sma == "USFS") {
+    usfs <- access_us_sma(dir_raw,
+                          layer = "SurfaceMgtAgy_USFS") |>
+      sf::st_transform(epsg)
+    
+    thisUsfs <- usfs |>
+      sf::st_filter(genOpArea) |>
+      dplyr::mutate(group = 1) |>
+      dplyr::group_by(group) |>
+      dplyr::summarise(SHAPE = st_union(SHAPE)) |>
+      dplyr::ungroup() |>
+      sf::st_buffer(-400) |>
+      sf::st_intersection(genOpArea)
+  }
+  
+  
+  
+  #Clip land cover data
+  evtHere <- lc |>
+    crop_careful_universal(vector = genOpArea,
+                           mask = TRUE,
+                           verbose = FALSE) |>
+    terra::project(epsg)
+  
+  
+  #Slope mask
+  thisSlopeResample <- thisSlope |>
+    terra::crop(evtHere,
+                snap = "near",
+                extend = TRUE) |>
+    terra::resample(evtHere,
+                    method = "near") |>
+    terra::project(epsg)
+  slopeMask <- thisSlopeResample > 15
+  
+  
+  #Apply all masks and generate sampling options raster
+  evtHereMasked <- evtHere |>
+    terra::mask(mask = slopeMask,
+                maskvalues = TRUE) |>
+    terra::mask(bigRoadBuff)
+  
+  if(sma == "USFS") {
+    evtHereMasked <- evtHereMasked |>
+      terra::mask(thisUsfs)
+  }
+  
+  evtCsv <- access_landfire_evt_conus_2022_csv() |>
+    dplyr::mutate(VALUE = as.integer(VALUE))
+  
+  # Sample raster
+  set.seed(1)
+  potentialPlots <- raster::sampleStratified(raster::raster(evtHereMasked), size = numPlotsEach, na.rm = TRUE, sp = TRUE) |>
+    sf::st_as_sf() |>
+    dplyr::mutate(VALUE = EVT_NAME) |>
+    dplyr::select(-EVT_NAME) |>
+    dplyr::left_join(evtCsv, by = join_by(VALUE == VALUE)) |>
+    dplyr::filter(EVT_GP_N != "Open Water" & !grepl("developed", EVT_PHYS, ignore.case = TRUE) & EVT_GP_N != "Quarries-Strip Mines-Gravel Pits-Well and Wind Pads") |>
+    dplyr::mutate(plotID = paste0(name, "_", row_number())) |>
+    dplyr::mutate(sampleRaster = lcName)
+  
+  potentialPlotLocationsWGS <- potentialPlots |>
+    sf::st_transform("EPSG:4326") |>
+    sf::st_coordinates() %>%
+    cbind(potentialPlots, .) |>
+    dplyr::rename(lat = Y, long = X)
+  
+  potentialPlotLocationsClean <- potentialPlotLocationsWGS |>
+    dplyr::select(plotID, EVT_NAME, lat, long, geometry) |>
+    dplyr::rename(landcover = EVT_NAME)
+  
+  
+  #sf::st_write(potentialPlotLocationsWGS, here::here(outDir, glue::glue('aop_{name}_points.gpkg')), append = FALSE)
+  sf::st_write(potentialPlotLocationsClean, here::here(outDir, glue::glue('aop_{name}_{lcName}_points.gpkg')), append = FALSE)
+  write_csv(potentialPlotLocationsClean |> sf::st_drop_geometry(), here::here(outDir, glue::glue('aop_{name}_{lcName}_points.csv')))
+  st_write_shp(shp = potentialPlotLocationsClean,
+               location = outDir,
+               filename = glue::glue("aop_{name}_{lcName}_points"),
+               zip_only = TRUE)
+}
+
+
+
+
+# A function to create the general operating area for plot selection
+# PARAMETERS
+# ranger :: USFS ranger district as an sf spatial object
+# ecoRegion :: EPA ecoregion as an sf spatial object
+create_operating_area <- function(ranger, ecoRegion) {
+  
+  epsg <- "EPSG:5070" #Albers equal area
+  
+  ranger <- ranger |>
+    sf::st_transform(epsg)
+  
+  ecoRegion <- ecoRegion |>
+    sf::st_transform(epsg)
+  
+  reasonableAreasOfAccess <- sf::st_read(here::here("data/manual/reasonable_areas_of_access.gpkg")) |>  #these are manually created areas of access. For YELL it is from create_yell_neon_aoi.R
+    sf::st_transform(epsg) |>
+    dplyr::mutate(grp = 1) |>
+    dplyr::group_by(grp) |>
+    dplyr::summarise(geom = st_union(geom)) |>
+    dplyr::ungroup()
+  
+  #Wilderness & WSA
+  wildernessAll <- access_us_wilderness(dest_path = here::here('data', 'raw', 'wild.gpkg')) |> 
+    sf::st_transform(epsg) |>
+    sf::st_buffer(400) #USFS standard is no drones w/in 300m of wilderness boundaries + 70, same reasoning as road buffer; add an extra 30m to be safe = 400
+  
+  wilderness <- wildernessAll |>
+    sf::st_filter(ranger) |>
+    dplyr::mutate(group = 1) |>
+    dplyr::group_by(group) |>
+    dplyr::summarise(geometry = st_union(geometry)) |>
+    dplyr::ungroup()
+  
+  wsaAll <- access_us_wilderness_study_areas(dest_path = here::here('data', 'raw', 'wsa.gpkg')) |>
+    sf::st_transform(epsg) |>
+    sf::st_buffer(400) #USFS standard is no drones w/in 300m of wilderness boundaries + 70, same reasoning as road buffer; add an extra 30m to be safe = 400
+  
+  wsa <- wsaAll |>
+    sf::st_filter(ranger) |>
+    dplyr::mutate(group = 1) |>
+    dplyr::group_by(group) |>
+    dplyr::summarise(geometry = st_union(geometry)) |>
+    dplyr::ungroup()
+  
+  genOpArea <- ecoRegion |>
+    sf::st_buffer(-50) |>
+    sf::st_intersection(ranger) |>
+    dplyr::mutate(group = 1) |>
+    dplyr::group_by(group) |>
+    dplyr::summarise(geometry = st_union(geometry)) |>
+    dplyr::ungroup() |>
+    sf::st_intersection(reasonableAreasOfAccess)
+  
+  if(nrow(wilderness) > 0) {
+    genOpArea <- genOpArea |>
+      sf::st_difference(wilderness)
+  }
+  if(nrow(wsa) > 0) {
+    genOpArea <- genOpArea |>
+      sf::st_difference(wsa)
+  }
+  
+  return(genOpArea)
+}
+
+
 
 # Generating AOP tile polygons ----
 
@@ -862,6 +1094,175 @@ write.dji.kml <- function(sfObj, fileNm, outDir) {
 
 # Data access ----
 
+
+## Hydrosheds DEM data ----
+
+# A function to mount and download slope data for the US
+# Returns the slope data object
+# PARAMETERS
+# slopeF :: the path to which the slope data should be saved (if not already present).
+#If already downloaded, data will be read without download
+access_us_slope <- function(slopeF) {
+  if(file.exists(slopeF)) {
+    slope <- terra::rast(slopeF)
+  } else {
+    slope <- glue::glue(
+      "/vsizip/vsicurl/", #magic remote connection 
+      "https://data.hydrosheds.org/file/hydrosheds-v1-dem/hyd_na_dem_15s.zip", #copied link to download location
+      "/hyd_na_dem_15s.tif") |> #path inside zip file
+      terra::rast() |>
+      terra::terrain("slope")
+    terra::writeRaster(slope, slopeF,
+                       gdal=c("COMPRESS=DEFLATE"))
+  }
+  return(slope)
+}
+
+## OSM Road Data ----
+
+
+#A function to access road data from OSM
+# PARAMETERS
+# aoi :: an area of interest as an sf object - roads will be accessed within the area plus a 1km buffer
+# Adapt function as necessary for filtering
+access_osm_roads <- function(aoi) {
+  roadsData <- osmdata::opq(bbox = sf::st_bbox(sf::st_transform(sf::st_buffer(aoi, 2000), 4326))) |>
+    osmdata::add_osm_feature(key = "highway",
+                             key_exact = FALSE,
+                             value_exact = FALSE,
+                             match_case = FALSE) |>
+    osmdata::osmdata_sf()
+  desiredColumns <- c("USFS", "highway", "access", "maintained", "motor_vehicle", "service", "smoothness", "surface", "tracktype")
+  roads <- roadsData$osm_lines |>
+    dplyr::select(dplyr::any_of(desiredColumns)) |>
+    dplyr::filter(highway != "path" | is.na(highway)) |> 
+    dplyr::filter(tracktype != "grade5" | is.na(tracktype)) |>
+    dplyr::filter(access != "private" | is.na(access)) |>
+    dplyr::mutate(group = 1) |>
+    group_by(group) |>
+    summarise(geometry = st_union(geometry)) |>
+    ungroup() |>
+    sf::st_transform(epsg) |>
+    sf::st_intersection(sf::st_buffer(aoi, 1000)) #clip to district of interest + 1km
+  
+  return(roads)
+}
+
+
+## Administrative boundaries ----
+
+
+
+
+access_ynp_bear_management_areas <- function() {
+  # Write out the URL query
+  base_url <- "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/YELL_BEAR_MANAGEMENT_AREAS_public_viewview/FeatureServer/0/query"
+  query_params <- list(f = "json",
+                       where = "1=1",
+                       outFields = "*",
+                       returnGeometry = "true")
+  
+  # Request data
+  bma <- access_data_get_x_from_arcgis_rest_api_geojson(
+    base_url = base_url, 
+    query_params = query_params, 
+    max_record = 1000, 
+    n = "all", 
+    timeout = 600
+  )
+  
+  return(bma)
+  
+}
+
+# The ranger districts file is quite small, so it is accessed via VSI
+access_usfs_ranger_districts <- function() {
+  usfs_rds <- paste0(
+    "/vsizip/vsicurl/", #magic remote connection
+    "https://data.fs.usda.gov/geodata/edw/edw_resources/shp/S_USA.RangerDistrict.zip", #copied link to download location
+    "/S_USA.RangerDistrict.shp") |> #path inside zip file
+    sf::st_read()
+  return(usfs_rds)
+}
+
+
+# A function to access the US federal surface management agency polygon dataset
+# The function downloads and unzips a geodatabase rather than accessing via VSI since this layer is 
+# useful for visualization and field planning, as well as it being accessed multiple times
+access_us_sma <- function(dir_path, layer) {
+  
+  loc <- here::here(dir_path, "SMA_WM.gdb")
+  if(file.exists(loc)) {
+    sma <- sf::st_read(loc, layer = layer)
+  } else {
+    download_unzip_file(url = "https://blm-egis.maps.arcgis.com/sharing/rest/content/items/6bf2e737c59d4111be92420ee5ab0b46/data",
+                        extract_to = dir_path,
+                        keep_zip = FALSE)
+    sma <-  sf::st_read(loc, layer = layer)
+  }
+  return(sma)
+}
+
+access_us_sma_helper_show_layers <- function(dir_path) {
+ sf::st_layers(here::here(dir_path, "SMA_WM.gdb"))
+}
+
+access_us_wilderness <- function(dest_path = NA) {
+  if(is.na(dest_path)) {
+    wild <- paste0(
+      "/vsizip/vsicurl/", #magic remote connection
+      "https://data.fs.usda.gov/geodata/edw/edw_resources/shp/S_USA.Wilderness.zip", #copied link to download location
+      "/S_USA.Wilderness.shp") |> #path inside zip file
+      sf::st_read()
+  } else {
+    if(file.exists(dest_path)) {
+      wild <- sf::st_read(dest_path)
+    } else {
+      wild <- paste0(
+        "/vsizip/vsicurl/", #magic remote connection
+        "https://data.fs.usda.gov/geodata/edw/edw_resources/shp/S_USA.Wilderness.zip", #copied link to download location
+        "/S_USA.Wilderness.shp") |> #path inside zip file
+        sf::st_read()
+      sf::st_write(wild, dest_path)
+    }
+  }
+  return(wild)
+}
+
+
+# Queries the PADUS REST service for WSAs
+# PADUS interactive online: https://usgs.maps.arcgis.com/home/item.html?id=98fce3fb0c8241ce8847e9f7d0d212e9
+access_us_wilderness_study_areas <- function(dest_path = NA) {
+  if(is.na(dest_path)) {
+    query_params <- list(where = "DesTp_Desc='Wilderness Study Area'",
+                         outFields = "*",
+                         f = "json")
+    base_url = "https://services.arcgis.com/v01gqwM5QqNysAAi/ArcGIS/rest/services/PADUS_Protection_Status_by_GAP_Status_Code/FeatureServer/0/QUERY"
+    wsa <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = base_url,
+                                                          query_params = query_params,
+                                                          max_record = 2000,
+                                                          n = "all",
+                                                          timeout = 500)
+  } else {
+    if(file.exists(dest_path)) {
+      wsa <- sf::st_read(dest_path)
+    } else {
+      query_params <- list(where = "DesTp_Desc='Wilderness Study Area'",
+                           outFields = "*",
+                           f = "json")
+      base_url = "https://services.arcgis.com/v01gqwM5QqNysAAi/ArcGIS/rest/services/PADUS_Protection_Status_by_GAP_Status_Code/FeatureServer/0/QUERY"
+      wsa <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = base_url,
+                                                            query_params = query_params,
+                                                            max_record = 2000,
+                                                            n = "all",
+                                                            timeout = 500)
+      sf::st_write(wsa, dest_path)
+    }
+  }
+  return(wsa)
+}
+
+
 ## Landfire ----
 
 #' Access LANDFIRE EVT Raster for CONUS (2023)
@@ -948,7 +1349,7 @@ access_landfire_evt_conus_2022 <- function(access = "stream", dir_path = NA) {
       terra::rast()
   }
   if(access == "download") {
-    loc <- here::here(dir_path, "LF2022_EVT_230_CONUS/LF2022_EVT_230_CONUS/Tif/LC22_EVT_230.tif")
+    loc <- here::here(dir_path, "LF2022_EVT_230_CONUS/Tif/LC22_EVT_230.tif")
     if(file.exists(loc)) {
       lf_evt <- terra::rast(loc)
     } else {
@@ -1142,144 +1543,6 @@ access_data_epa_l3_ecoregions_vsi <- function() {
   return(epa_l3)
 }
 
-## ArcGIS REST Data access
-
-
-#' Fetch Data from an ArcGIS REST API Endpoint with Pagination
-#'
-#' This function retrieves geojson data from an ArcGIS REST API endpoint using pagination. It supports fetching a specified
-#' number of entries or all available entries from the API endpoint. Written with ChatGPT 4o assistance.
-#'
-#' @param base_url A character string. The base URL of the ArcGIS REST API endpoint.
-#' @param query_params A list. Query parameters to be used in the API request. The list should contain the necessary
-#' parameters required by the API, such as `where`, `outFields`, and `f`.
-#' @param max_record An integer. The maximum number of records that can be fetched in a single API request. This value is
-#' usually defined by the ArcGIS REST API server limitations.
-#' @param n An integer or character. Specifies the total number of entries to fetch. If `"all"`, the function fetches
-#' all available records from the API. If an integer, it specifies the exact number of records to fetch.
-#' @param timeout An integer. The time in seconds to wait before timing out the request.
-#'
-#' @return An `sf` object. A Simple Features (sf) object containing the fetched data.
-#' @import httr sf
-#' @examples
-#' \dontrun{
-#' base_url <- "https://example.com/arcgis/rest/services/your_service/FeatureServer/0/query"
-#' query_params <- list(where = "1=1", outFields = "*", f = "geojson")
-#' max_record <- 100
-#' n <- 500  # Can also be "all"
-#' result <- get.x.from.arcgis.rest.api(base_url, query_params, max_record, n)
-#' print(result)
-#' }
-#' @importFrom httr GET status_code content timeout
-#' @importFrom sf st_read
-#' @export
-access_data_get_x_from_arcgis_rest_api_geojson <- function(base_url, query_params, max_record, n, timeout) {
-  # Input validation
-  if (!is.character(base_url) || length(base_url) != 1) {
-    stop("Parameter 'base_url' must be a single character string.")
-  }
-  if (!is.list(query_params)) {
-    stop("Parameter 'query_params' must be a list.")
-  }
-  if (!is.numeric(max_record) || length(max_record) != 1 || max_record <= 0) {
-    stop("Parameter 'max_record' must be a positive integer.")
-  }
-  if (!is.numeric(timeout) || length(timeout) != 1 || timeout <= 0) {
-    stop("Parameter 'timeout' must be a positive integer.")
-  }
-  
-  
-  # Initialize variables
-  total_features <- list()
-  offset <- 0
-  total_fetched <- 0  # Keep track of the total number of records fetched
-  
-  # Determine the limit for fetching records
-  fetch_all <- FALSE
-  if (n == "all") {
-    fetch_all <- TRUE
-  } else if (!is.numeric(n) || n <= 0) {
-    stop("Parameter 'n' must be a positive integer or 'all'.")
-  }
-  
-  repeat {
-    # Update the resultOffset parameter in query_params
-    query_params$resultOffset <- offset
-    
-    # Make the GET request using the base URL and query parameters
-    response <- httr::GET(url = base_url, query = query_params, httr::timeout(timeout))
-    
-    # Check if the request was successful
-    if (httr::status_code(response) == 200) {
-      # Read the GeoJSON data directly into an sf object
-      data <- sf::st_read(httr::content(response, as = "text"), quiet = TRUE)
-      
-      # Append the data to the list of features
-      total_features <- append(total_features, list(data))
-      
-      # Update the total number of fetched records
-      total_fetched <- total_fetched + nrow(data)
-      
-      # Provide user feedback for long-running processes
-      cat(sprintf("Fetched %d records so far...\n", total_fetched))
-      
-      # Determine if we should stop fetching
-      if ((nrow(data) < max_record) || (!fetch_all && total_fetched >= n)) {
-        break
-      }
-      
-      # Increment the offset by the maximum number of records for the next page
-      offset <- offset + max_record
-    } else {
-      # Handle errors and provide meaningful messages
-      error_message <- httr::content(response, "text", encoding = "UTF-8")
-      stop("Failed to fetch data: ", httr::status_code(response), " - ", error_message)
-    }
-  }
-  
-  # Combine all pages into one sf object
-  all_data_sf <- do.call(rbind, total_features)
-  
-  # If n is not "all", limit the output to the first n records
-  if (!fetch_all) {
-    all_data_sf <- all_data_sf[1:min(n, nrow(all_data_sf)), ]
-  }
-  
-  return(all_data_sf)
-}
-
-
-
-
-
-### NPS Data ----
-
-
-
-
-
-
-access_ynp_bear_management_areas <- function() {
-  # Write out the URL query
-  base_url <- "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/YELL_BEAR_MANAGEMENT_AREAS_public_viewview/FeatureServer/0/query"
-  query_params <- list(f = "json",
-                       where = "1=1",
-                       outFields = "*",
-                       returnGeometry = "true")
-  
-  # Request data
-  bma <- access_data_get_x_from_arcgis_rest_api_geojson(
-    base_url = base_url, 
-    query_params = query_params, 
-    max_record = 1000, 
-    n = "all", 
-    timeout = 600
-  )
-  
-  return(bma)
-  
-}
-
 
 
 # Utility ----
@@ -1428,10 +1691,10 @@ dir_ensure <- function(path) {
 # 
 # Usage Example:
 # # Assuming styleData is pre-defined with the appropriate columns
-# create.qgis.style.for.paletted.raster.from.csv(styleData, "path/to/output.qml", "value", "label", "hex")
+# create_qgis_style_for_paletted_raster_from_csv(styleData, "path/to/output.qml", "value", "label", "hex")
 # Citation:
 #   Function authored by R Code Stylist, GPT-4, OpenAI, in collaboration with the user.
-create.qgis.style.for.paletted.raster.from.csv <- function(styleData, outputQmlPath, valueColumn, labelColumn, colorScheme = "hex") {
+create_qgis_style_for_paletted_raster_from_csv <- function(styleData, outputQmlPath, valueColumn, labelColumn, colorScheme = "hex") {
   
   # Check for the necessary columns in the CSV based on the color scheme
   if (!labelColumn %in% colnames(styleData)) {
@@ -1739,6 +2002,13 @@ download_unzip_file <- function(url, extract_to, keep_zip = FALSE) {
     tempfile(fileext = ".zip")
   }
   
+  # Ensure temporary file cleanup if there's an error and keep_zip is FALSE
+  on.exit({
+    if (!keep_zip && file.exists(zip_path)) {
+      unlink(zip_path)
+    }
+  }, add = TRUE)
+  
   # Attempt to download the ZIP file
   tryCatch({
     download.file(url, zip_path, mode = "wb")
@@ -1757,6 +2027,8 @@ download_unzip_file <- function(url, extract_to, keep_zip = FALSE) {
   if (!keep_zip) {
     unlink(zip_path)
   }
+  
+  gc()
   
   invisible(NULL)
 }
@@ -1820,5 +2092,112 @@ merge_list_of_rasters <- function(file_list, file_final_path = NULL, datatype = 
   } else {
     return(combined_rasters)  # Return the merged raster in memory
   }
+}
+
+
+## ArcGIS REST Data access
+
+
+#' Fetch Data from an ArcGIS REST API Endpoint with Pagination
+#'
+#' This function retrieves geojson data from an ArcGIS REST API endpoint using pagination. It supports fetching a specified
+#' number of entries or all available entries from the API endpoint. Written with ChatGPT 4o assistance.
+#'
+#' @param base_url A character string. The base URL of the ArcGIS REST API endpoint.
+#' @param query_params A list. Query parameters to be used in the API request. The list should contain the necessary
+#' parameters required by the API, such as `where`, `outFields`, and `f`.
+#' @param max_record An integer. The maximum number of records that can be fetched in a single API request. This value is
+#' usually defined by the ArcGIS REST API server limitations.
+#' @param n An integer or character. Specifies the total number of entries to fetch. If `"all"`, the function fetches
+#' all available records from the API. If an integer, it specifies the exact number of records to fetch.
+#' @param timeout An integer. The time in seconds to wait before timing out the request.
+#'
+#' @return An `sf` object. A Simple Features (sf) object containing the fetched data.
+#' @import httr sf
+#' @examples
+#' \dontrun{
+#' base_url <- "https://example.com/arcgis/rest/services/your_service/FeatureServer/0/query"
+#' query_params <- list(where = "1=1", outFields = "*", f = "geojson")
+#' max_record <- 100
+#' n <- 500  # Can also be "all"
+#' result <- get.x.from.arcgis.rest.api(base_url, query_params, max_record, n)
+#' print(result)
+#' }
+#' @importFrom httr GET status_code content timeout
+#' @importFrom sf st_read
+#' @export
+access_data_get_x_from_arcgis_rest_api_geojson <- function(base_url, query_params, max_record, n, timeout) {
+  # Input validation
+  if (!is.character(base_url) || length(base_url) != 1) {
+    stop("Parameter 'base_url' must be a single character string.")
+  }
+  if (!is.list(query_params)) {
+    stop("Parameter 'query_params' must be a list.")
+  }
+  if (!is.numeric(max_record) || length(max_record) != 1 || max_record <= 0) {
+    stop("Parameter 'max_record' must be a positive integer.")
+  }
+  if (!is.numeric(timeout) || length(timeout) != 1 || timeout <= 0) {
+    stop("Parameter 'timeout' must be a positive integer.")
+  }
+  
+  
+  # Initialize variables
+  total_features <- list()
+  offset <- 0
+  total_fetched <- 0  # Keep track of the total number of records fetched
+  
+  # Determine the limit for fetching records
+  fetch_all <- FALSE
+  if (n == "all") {
+    fetch_all <- TRUE
+  } else if (!is.numeric(n) || n <= 0) {
+    stop("Parameter 'n' must be a positive integer or 'all'.")
+  }
+  
+  repeat {
+    # Update the resultOffset parameter in query_params
+    query_params$resultOffset <- offset
+    
+    # Make the GET request using the base URL and query parameters
+    response <- httr::GET(url = base_url, query = query_params, httr::timeout(timeout))
+    
+    # Check if the request was successful
+    if (httr::status_code(response) == 200) {
+      # Read the GeoJSON data directly into an sf object
+      data <- sf::st_read(httr::content(response, as = "text"), quiet = TRUE)
+      
+      # Append the data to the list of features
+      total_features <- append(total_features, list(data))
+      
+      # Update the total number of fetched records
+      total_fetched <- total_fetched + nrow(data)
+      
+      # Provide user feedback for long-running processes
+      cat(sprintf("Fetched %d records so far...\n", total_fetched))
+      
+      # Determine if we should stop fetching
+      if ((nrow(data) < max_record) || (!fetch_all && total_fetched >= n)) {
+        break
+      }
+      
+      # Increment the offset by the maximum number of records for the next page
+      offset <- offset + max_record
+    } else {
+      # Handle errors and provide meaningful messages
+      error_message <- httr::content(response, "text", encoding = "UTF-8")
+      stop("Failed to fetch data: ", httr::status_code(response), " - ", error_message)
+    }
+  }
+  
+  # Combine all pages into one sf object
+  all_data_sf <- do.call(rbind, total_features)
+  
+  # If n is not "all", limit the output to the first n records
+  if (!fetch_all) {
+    all_data_sf <- all_data_sf[1:min(n, nrow(all_data_sf)), ]
+  }
+  
+  return(all_data_sf)
 }
 

@@ -1,4 +1,8 @@
+# This script will create rasters of areas not well-represented within NEON AOP
+# flight boxes, as defined by landfire EVT classes. These rasters are then meant to be used
+# for randomized site selection for the Macrosystems project
 
+#Tyler L. McIntosh
 
 # Setup ----
 #rm(list = ls())
@@ -43,6 +47,8 @@ areas_of_interest <- access_neon_aop_flight_box_data() #note that flight boxes h
 # which creates conservative EVT layers
 # the data from script 01 needs to be put in a folder in dir_derived called
 # "conservative_evt_west_3window" and "conservative_evt_west_5window" respectively
+# They are conservative estimates of EVT in that they have had a spatial window filter
+# put over them to remove speckle
 
 #3x3 median window
 evt3F <- here::here('data', 'derived', 'conservative_evt_west_3window', 'conservative_evt_west_3window.tif')
@@ -77,8 +83,36 @@ levels(evt_conservative_5_window) <- terra::cats(raster)[[1]]
 
 
 
+# Export EVT QML file for visualization and use ----
 
-# Establish Yellowstone AOI ----
+# Create a QGIS QML file for visualizing EVT outputs in QGIS. Can be loaded in QGIS an associated with the layer
+create_qgis_style_for_paletted_raster_from_csv(styleData = raster_cats %>%
+                                                 mutate(across(everything(), ~replace(., is.na(.), "NA"))),
+                                               outputQmlPath = here::here('data/derived/landfire_evt_style.qml'),
+                                               valueColumn = "VALUE",
+                                               labelColumn = "EVT_NAME",
+                                               colorScheme = "RGB")
+
+
+
+
+# Representativeness rasters for field site sampling ----
+
+## Prep polygons ----
+### Middle rockies ----
+middle_rockies <- region_polygons |>
+  dplyr::filter(US_L3NAME == "Middle Rockies") |>
+  dplyr::group_by(US_L3NAME) |>
+  dplyr::summarise(geometry = st_union(geometry)) |>
+  dplyr::ungroup()
+
+middle_rockies_core <- region_polygons |>
+  dplyr::filter(US_L3NAME == "Middle Rockies") %>%
+  dplyr::mutate(id = seq(1:nrow(.))) |>
+  dplyr::filter(id == 12)
+
+
+#### Establish Yellowstone AOI ----
 # Create more limited Yellowstone AOI that does not include the bear management zone or the southern part of the flight box that is too far from the road for easy access
 yell_flightbox <- areas_of_interest |> dplyr::filter(siteID == "YELL")  |>
   sf::st_transform(crs = 4326)
@@ -104,7 +138,7 @@ roads <- roads_data$osm_lines |>
   ungroup()
 
 #create aoi
-aoi <- roads |>
+yell_aoi <- roads |>
   sf::st_buffer(units::set_units(2, "miles"), nQuadSegs = 100) |> #buffer roads
   sf::st_intersection(yell_flightbox) |> #clip to NEON AOP
   sf::st_difference(bma |>
@@ -112,38 +146,10 @@ aoi <- roads |>
                       sf::st_buffer(units::set_units(0.1, "miles"))) # remove closed bma plus a small buffer around closed area
 
 
-sf::st_write(aoi, here::here(dir_derived, 'yell_aoi.gpkg'), append = FALSE)
+sf::st_write(yell_aoi, here::here(dir_derived, 'yell_aoi.gpkg'), append = FALSE)
 
 
-# Export EVT QML file for visualization and use ----
-
-# Create a QGIS QML file for visualizing EVT outputs in QGIS. Can be loaded in QGIS an associated with the layer
-create.qgis.style.for.paletted.raster.from.csv(styleData = raster_cats %>%
-                                                 mutate(across(everything(), ~replace(., is.na(.), "NA"))),
-                                               outputQmlPath = here::here('data/derived/landfire_evt_style.qml'),
-                                               valueColumn = "VALUE",
-                                               labelColumn = "EVT_NAME",
-                                               colorScheme = "RGB")
-
-
-
-
-# Representativeness rasters for field site sampling ----
-
-## Prep polygons ----
-#Middle rockies
-middle_rockies <- region_polygons |>
-  dplyr::filter(US_L3NAME == "Middle Rockies") |>
-  dplyr::group_by(US_L3NAME) |>
-  dplyr::summarise(geometry = st_union(geometry)) |>
-  dplyr::ungroup()
-
-middle_rockies_core <- region_polygons |>
-  dplyr::filter(US_L3NAME == "Middle Rockies") %>%
-  dplyr::mutate(id = seq(1:nrow(.))) |>
-  dplyr::filter(id == 12)
-
-#Southern rockies
+### Southern rockies ----
 southern_rockies <- region_polygons |>
   dplyr::filter(US_L3NAME == "Southern Rockies") |>
   dplyr::group_by(US_L3NAME) |>
@@ -153,7 +159,7 @@ southern_rockies <- region_polygons |>
 niwo <- areas_of_interest |> dplyr::filter(siteID == "NIWO")
 
 
-#Cascades
+### Cascades ----
 cascades <- region_polygons |>
   dplyr::filter(US_L3NAME == "Cascades") |>
   dplyr::group_by(US_L3NAME) |>
@@ -169,4 +175,58 @@ cascades_core_buff <- cascades_core |>
   sf::st_buffer(dist = 1000, nQuadSegs = 1000)
 
 wref <- areas_of_interest |> dplyr::filter(siteID == "WREF")
+
+## Create rasters ----
+
+tic()
+results <- representative_categorical_cover_analysis(raster = evt_conservative_3_window,
+                                                     raster_cat_df = raster_cats,
+                                                     region_shape = southern_rockies,
+                                                     aoi_shape = niwo,
+                                                     run_name = "southern_rockies_evt3",
+                                                     cat_base_column_name = "VALUE",
+                                                     region_drop_perc = 0.001,
+                                                     aoi_drop_perc = 0.001,
+                                                     drop_classes = NA,
+                                                     drop_classes_column_name = NA,
+                                                     out_rast_values = "RAW",
+                                                     out_rast_type = "NOT_REP",
+                                                     out_dir = dir_field_rasters,
+                                                     new_sub_dir = FALSE)
+toc()
+
+tic()
+results <- representative_categorical_cover_analysis(raster = evt_conservative_3_window,
+                                                     raster_cat_df = raster_cats,
+                                                     region_shape = middle_rockies_core,
+                                                     aoi_shape = yell_aoi,
+                                                     run_name = "middle_rockies_core_evt3",
+                                                     cat_base_column_name = "VALUE",
+                                                     region_drop_perc = 0.001,
+                                                     aoi_drop_perc = 0.001,
+                                                     drop_classes = NA,
+                                                     drop_classes_column_name = NA,
+                                                     out_rast_values = "RAW",
+                                                     out_rast_type = "NOT_REP",
+                                                     out_dir = dir_field_rasters,
+                                                     new_sub_dir = FALSE)
+toc()
+
+tic()
+results <- representative_categorical_cover_analysis(raster = evt_conservative_3_window,
+                                                     raster_cat_df = raster_cats,
+                                                     region_shape = cascades_core_buff,
+                                                     aoi_shape = wref,
+                                                     run_name = "cascades_core_buff_evt3",
+                                                     cat_base_column_name = "VALUE",
+                                                     region_drop_perc = 0.001,
+                                                     aoi_drop_perc = 0.001,
+                                                     drop_classes = NA,
+                                                     drop_classes_column_name = NA,
+                                                     out_rast_values = "RAW",
+                                                     out_rast_type = "NOT_REP",
+                                                     out_dir = dir_field_rasters,
+                                                     new_sub_dir = FALSE)
+toc()
+
 
