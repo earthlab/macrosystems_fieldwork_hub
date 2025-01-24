@@ -72,7 +72,6 @@ yell_aop_grid <- generate_aop_image_grid(site = "YELL", year = 2023, visit = 5)
 
 
 
-
 ## WREF ----
 wref <- aop_flight_boxes |>
   dplyr::filter(siteID == "WREF")

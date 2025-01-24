@@ -17,9 +17,21 @@ This script uses the following naming conventions wherever possible:
  underscore_separated for files
 
 
+# Set parameters for run
+
+```{r}
+#clean
+rm(list = ls())
+
+today <- "1_17_2025" #a string containing the date of run
+
+```
+
+
 # Set libraries
 
 ```{r}
+
 
 #Select library chunks from R_Libraries.txt and add to "list.of.packages"
 
@@ -36,7 +48,8 @@ utility <- c(
 #####Data management libraries
 dataManagement <- c(
 	"tidyverse", #Includes: dplyr, forcats, ggplot2, lubridate, purrr, readr, stringr, tibble, tidyr
-	"glue" #Easy string management
+	"glue", #Easy string management
+	"httr"
 )
 
 #####Geographic libraries
@@ -45,7 +58,8 @@ geographicStandard <- c(
 #When writing rasters, always specify data type to optimize storage & future computation:
 #https://search.r-project.org/CRAN/refmans/raster/html/dataType.html
 	"sf", #New vector package
-	"geos" #topology operations on geometries ('rgeos' package retired in Oct 2023, transition to sf, terra, or geos packages)
+	"geos", #topology operations on geometries ('rgeos' package retired in Oct 2023, transition to sf, terra, or geos packages)
+  "tigris"
 )
 
 #ADD LIBRARY CHUNKS HERE
@@ -81,7 +95,7 @@ invisible(lapply(list.of.packages, library, character.only = TRUE)) #use 'invisi
 
 # Clean workspace & set up environment
 here::here() #Check here location
-here::i_am("code/clean_prep_fieldmapped_polygons.Rmd")
+here::i_am("code/post-field-processing/clean_prep_fieldmapped_polygons.Rmd")
 #OR
 #setwd() #Set working directory directly
 options(digits = 6) #Set standard decimal print output
@@ -106,31 +120,221 @@ if (!dir.exists(datDerDir)){
 
 ```
 
-
-# Read in data
-
+# Functions for data access
 ```{r}
+
+#' Fetch Data from an ArcGIS REST API Endpoint with Pagination
+#'
+#' This function retrieves geojson data from an ArcGIS REST API endpoint using pagination. It supports fetching a specified
+#' number of entries or all available entries from the API endpoint. Written with ChatGPT 4o assistance.
+#'
+#' @param base_url A character string. The base URL of the ArcGIS REST API endpoint.
+#' @param query_params A list. Query parameters to be used in the API request. The list should contain the necessary
+#' parameters required by the API, such as `where`, `outFields`, and `f`.
+#' @param max_record An integer. The maximum number of records that can be fetched in a single API request. This value is
+#' usually defined by the ArcGIS REST API server limitations.
+#' @param n An integer or character. Specifies the total number of entries to fetch. If `"all"`, the function fetches
+#' all available records from the API. If an integer, it specifies the exact number of records to fetch.
+#' @param timeout An integer. The time in seconds to wait before timing out the request.
+#'
+#' @return An `sf` object. A Simple Features (sf) object containing the fetched data.
+#' @import httr sf
+#' @examples
+#' \dontrun{
+#' base_url <- "https://example.com/arcgis/rest/services/your_service/FeatureServer/0/query"
+#' query_params <- list(where = "1=1", outFields = "*", f = "geojson")
+#' max_record <- 100
+#' n <- 500  # Can also be "all"
+#' result <- get.x.from.arcgis.rest.api(base_url, query_params, max_record, n)
+#' print(result)
+#' }
+#' @importFrom httr GET status_code content timeout
+#' @importFrom sf st_read
+#' @export
+access_data_get_x_from_arcgis_rest_api_geojson <- function(base_url, query_params, max_record, n, timeout) {
+  # Input validation
+  if (!is.character(base_url) || length(base_url) != 1) {
+    stop("Parameter 'base_url' must be a single character string.")
+  }
+  if (!is.list(query_params)) {
+    stop("Parameter 'query_params' must be a list.")
+  }
+  if (!is.numeric(max_record) || length(max_record) != 1 || max_record <= 0) {
+    stop("Parameter 'max_record' must be a positive integer.")
+  }
+  if (!is.numeric(timeout) || length(timeout) != 1 || timeout <= 0) {
+    stop("Parameter 'timeout' must be a positive integer.")
+  }
+  
+  
+  # Initialize variables
+  total_features <- list()
+  offset <- 0
+  total_fetched <- 0  # Keep track of the total number of records fetched
+  
+  # Determine the limit for fetching records
+  fetch_all <- FALSE
+  if (n == "all") {
+    fetch_all <- TRUE
+  } else if (!is.numeric(n) || n <= 0) {
+    stop("Parameter 'n' must be a positive integer or 'all'.")
+  }
+  
+  repeat {
+    # Update the resultOffset parameter in query_params
+    query_params$resultOffset <- offset
+    
+    # Make the GET request using the base URL and query parameters
+    response <- httr::GET(url = base_url, query = query_params, httr::timeout(timeout))
+    
+    # Check if the request was successful
+    if (httr::status_code(response) == 200) {
+      # Read the GeoJSON data directly into an sf object
+      data <- sf::st_read(httr::content(response, as = "text"), quiet = TRUE)
+      
+      # Append the data to the list of features
+      total_features <- append(total_features, list(data))
+      
+      # Update the total number of fetched records
+      total_fetched <- total_fetched + nrow(data)
+      
+      # Provide user feedback for long-running processes
+      cat(sprintf("Fetched %d records so far...\n", total_fetched))
+      
+      # Determine if we should stop fetching
+      if ((nrow(data) < max_record) || (!fetch_all && total_fetched >= n)) {
+        break
+      }
+      
+      # Increment the offset by the maximum number of records for the next page
+      offset <- offset + max_record
+    } else {
+      # Handle errors and provide meaningful messages
+      error_message <- httr::content(response, "text", encoding = "UTF-8")
+      stop("Failed to fetch data: ", httr::status_code(response), " - ", error_message)
+    }
+  }
+  
+  # Combine all pages into one sf object
+  all_data_sf <- do.call(rbind, total_features)
+  
+  # If n is not "all", limit the output to the first n records
+  if (!fetch_all) {
+    all_data_sf <- all_data_sf[1:min(n, nrow(all_data_sf)), ]
+  }
+  
+  return(all_data_sf)
+}
+
+
+get_arcgis_online_token <- function() {
+  username <- readline(prompt = "Enter your ArcGIS username: ")
+  password <- askpass::askpass(prompt = "Enter your ArcGIS password: ")
+  
+  
+  response <- httr::POST(
+    url = "https://www.arcgis.com/sharing/rest/generateToken",
+    body = list(
+      username = username,
+      password = password,
+      referer = "https://www.arcgis.com",
+      f = "json"
+    )
+  )
+  
+  token <- content(response)$token
+  return(token)
+}
+```
+
+
+# Access data remotely to ensure that the most recent data is being used and add necessary metadata
+
+``` {r}
+
+epsg <- "EPSG:5070"
+
 #Load raw data from ArcGIS Online
-aopPoly <- sf::st_read(here::here('data', 'raw', 'niwot_aop_macrosystems_data_2023_12_8_23.gpkg'))
-uasPoly <- sf::st_read(here::here('data', 'raw', 'macrosystems_uas_polygons_2023_12_13_23.gpkg'))
+# aopPoly <- sf::st_read(here::here('data', 'raw', 'aop_macrosystems_data_1_7_25.geojson')) |>
+#   sf::st_transform(epsg)
+# uasPoly <- sf::st_read(here::here('data', 'raw', 'macrosystems_uas_polygons_2023_12_13_23.gpkg')) |>
+#   sf::st_transform(epsg)
+
+
+#Get token - use Tyler's ArcGIS Online login info
+arc_token <- get_arcgis_online_token()
+
+
+# Set parameters for both data requests
+query_params <- list(where = "1=1",
+                     outFields = "*",
+                     f = "json")
+
+#Get AOP polygon data
+aop_polys_url <- "https://services.arcgis.com/b3fMqPOmotX6SV4k/ArcGIS/rest/services/niwot_aop_s_lower_hp_macrosystems_data/FeatureServer/0/QUERY"
+aopPoly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = aop_polys_url,
+                                                                   query_params = query_params,
+                                                                   max_record = 1000,
+                                                                   n = "all",
+                                                                   timeout = 500) |>
+  sf::st_transform(epsg)
+
+# Get UAS polygon data
+uas_polys_url <- "https://services.arcgis.com/b3fMqPOmotX6SV4k/ArcGIS/rest/services/macrosystems_uas_polygons_2023/FeatureServer/0/QUERY"
+uasPoly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = uas_polys_url,
+                                                                   query_params = query_params,
+                                                                   max_record = 1000,
+                                                                   n = "all",
+                                                                   timeout = 500) |>
+  sf::st_transform(epsg)
 
 #Check polygon validity
 unique(sf::st_is_valid(aopPoly))
 unique(sf::st_is_valid(uasPoly))
 
-#Add in attribute to specify what dataset it is (for later joining)
+#Add in attribute to specify what dataset it is (for later joining) & cast to ensure polygons, add field season year
 aopPoly <- aopPoly |>
-  dplyr::mutate(imagery = "AOP")
+  dplyr::mutate(imagery = "AOP",
+                field_year = lubridate::year(CreationDate)) |>
+  sf::st_cast("POLYGON")
 uasPoly <- uasPoly |>
-  dplyr::mutate(imagery = "UAS")
+  dplyr::mutate(imagery = "UAS",
+                field_year = lubridate::year(CreationDate)) |>
+  sf::st_cast("POLYGON")
+
+# Add state/site
+states <- tigris::states() |>
+  sf::st_transform(epsg)
+
+aopPoly <- aopPoly |>
+  sf::st_join(states |> dplyr::select(STUSPS), join = st_within) |>
+  dplyr::rename(state = STUSPS) |>
+  dplyr::mutate(aop_site = dplyr::case_when(
+    state == "WY" ~ "YELL",
+    state == "WA" ~ "WREF",
+    state == "CO" ~ "NIWO/RMNP",
+    TRUE ~ NA_character_
+  ))
+
+uasPoly <- uasPoly |>
+  sf::st_join(states |> dplyr::select(STUSPS), join = st_within) |>
+  dplyr::rename(state = STUSPS) |>
+  dplyr::mutate(aop_site = dplyr::case_when(
+    state == "WY" | state == "MT" ~ "YELL",
+    state == "WA" | state == "OR" ~ "WREF",
+    state == "CO" ~ "NIWO/RMNP",
+    TRUE ~ NA_character_
+  ))
+
 
 ```
+
 # Check for inconsistencies in the data
 
 ```{r}
 #Check data
 print("AOP")
-unique(aopPoly$species) #still includes species common names, needs fixed
+unique(aopPoly$species) #still includes species common names, needs fixed; also there are some that have species in the 'other species' column that we do have in our list now, need to add to species data
 unique(aopPoly$cover_category)
 unique(aopPoly$cover_subcategory)
 unique(aopPoly$dead_subcategory)
@@ -294,7 +498,7 @@ uasPolyClean <- uasPolyClean |> fix.shrub.trees()
 
 ```
 
-# Clean up NA's and create merged land cover attribute for ease of use
+# Clean up NA's, create merged land cover attribute for ease of use, add area
 
 ```{r}
 
@@ -309,49 +513,56 @@ replace.na <- function(dat) {
 add.merged.land.cover <- function(dats) {
   return(dats |> dplyr::mutate(combined_all_category_species = glue::glue("{cover_category}_{cover_subcategory}_{dead_subcategory}_{species}", .na = "", .null = NULL)))
 }
-  
-aopPolyClean <- aopPolyClean |>
-  replace.na() |>
-  add.merged.land.cover()
-uasPolyClean <- uasPolyClean |>
-  replace.na() |>
-  add.merged.land.cover()
 
-
-```
-
-#Filter to only include polygons large enough to be included
-
-```{r}
-#This function takes in a set of polygons and returns the same set of polygons with the area of the polygon added as a column called "stArea", in whatever units the CRS is in
-st.area.to.poly <- function(polys) {
+#This function takes in a set of polygons and returns the same set of polygons with the area of the polygon added as a column called [nm], in whatever units the CRS is in
+st.area.to.poly <- function(polys, nm) {
   out <- polys |>
     sf::st_area() |> #get area from sf package
     units::drop_units() %>%
     cbind(polys, .) |> #join to polygons
-    dplyr::rename(area_m = `.`) #rename
+    dplyr::rename({{nm}} := `.`) #rename
   return(out)
 }
 
-#Filter to only include polygons over 1 hyperspec pixel (1m^2)
-aopLargeEnoughClean <- aopPolyClean |>
-  st.area.to.poly() |>
-  dplyr::filter(area_m >= 1)
-
-#Filter to only include polygons over 4 micasense pixels (assuming 8cm pixel, or 256cm^2)
-uasLargeEnoughClean <- uasPolyClean |>
-  st.area.to.poly() |>
-  dplyr::filter(area_m >= 0.0256)
-
-glue::glue("{nrow(aopPolyClean) - nrow(aopLargeEnoughClean)} polygons were removed from the AOP data")
-glue::glue("{nrow(uasPolyClean) - nrow(uasLargeEnoughClean)} polygons were removed from the UAS data")
+#Use functions
+aopPolyClean <- aopPolyClean |>
+  replace.na() |>
+  add.merged.land.cover() |>
+  st.area.to.poly(nm = "area_m")
+uasPolyClean <- uasPolyClean |>
+  replace.na() |>
+  add.merged.land.cover() |>
+  st.area.to.poly(nm = "area_m")
 
 
-aopLargeEnoughClean |> filter(species == "Other")
+
+```
+
+# DEPRECTATED -- Filter out polygons that are too small
+This has been removed to retain all polygons for as long as possible
+
+```{r}
+
+# #Filter to only include polygons over 1 hyperspec pixel (1m^2)
+# aopLargeEnoughClean <- aopPolyClean |>
+#   dplyr::filter(area_m >= 1)
+# 
+# #Filter to only include polygons over 4 micasense pixels (assuming 8cm pixel, or 256cm^2)
+# uasLargeEnoughClean <- uasPolyClean |>
+#   dplyr::filter(area_m >= 0.0256)
+# 
+# glue::glue("{nrow(aopPolyClean) - nrow(aopLargeEnoughClean)} polygons were removed from the AOP data")
+# glue::glue("{nrow(uasPolyClean) - nrow(uasLargeEnoughClean)} polygons were removed from the UAS data")
+# 
+# 
+# aopLargeEnoughClean |> filter(species == "Other")
 
 ```
 
 # Create 1/2 minimum diameter polygons sets
+
+Note: for some unknown reason the geos::geos_maximum_inscribed_crc function does NOT work on some polygons if the entire set is used. Original theory was that it was a 2023/2024 split, but that doesn't resolve all of it. Nor does dividing by region. As a result, diameter calculations are now done at the per-polygon level
+
 ```{r half-diameter}
 
 
@@ -376,7 +587,6 @@ calculate.approx.diameter.maximum.inscribed.circle <- function(polys, tolerance)
     diam <- diam |> append(d)
   }
   return(cbind(polys, diam))
-  
 }
 
 #A function that uses 'calculate.approx.diameter.maximum.inscribed.circle'
@@ -385,18 +595,30 @@ calculate.approx.diameter.maximum.inscribed.circle <- function(polys, tolerance)
 #polys = an sf object representing polygons
 #tolerance = Threshold for considering circles to be touching a boundary.
 buffer.set.to.half.diam <- function(polys, tolerance) {
-  pWithD <- calculate.approx.diameter.maximum.inscribed.circle(polys, tolerance)
+  pWithD <- calculate.approx.diameter.maximum.inscribed.circle(polys, tolerance) |>
+    dplyr::filter(is.finite(diam))
   newPolys <- pWithD |>
-    dplyr::mutate(SHAPE = sf::st_buffer(SHAPE, dist = (diam / 4) * -1)) |>
-    dplyr::select(-diam)
+    dplyr::mutate(geometry = sf::st_buffer(geometry, dist = (diam / 4) * -1)) |>
+    dplyr::rename(old_diam = diam)
   return(newPolys)
 }
 
-#Use function
-uasLargeEnoughCleanHalf <- buffer.set.to.half.diam(uasLargeEnoughClean, 0.01)
-aopLargeEnoughCleanHalf <- buffer.set.to.half.diam(aopLargeEnoughClean, 0.01)
+#Use functions iteratively on each polygon
+aopPolyCleanHalf <- aopPolyClean %>%
+  split(seq_len(nrow(.))) |>
+  purrr::map(buffer.set.to.half.diam, 0.01) |>
+  dplyr::bind_rows()
 
+uasPolyCleanHalf <- uasPolyClean %>%
+  split(seq_len(nrow(.))) |>
+  purrr::map(buffer.set.to.half.diam, 0.01) |>
+  dplyr::bind_rows()
 
+# #Use function
+# uasPolyCleanHalf <- buffer.set.to.half.diam(uasPolyClean, 0.01)
+# aopPolyCleanHalf <- buffer.set.to.half.diam(aopPolyClean, 0.01)
+
+mapview(uasPolyClean) + mapview(uasPolyCleanHalf, col.regions = "red")
 
 ```
 
@@ -405,11 +627,11 @@ aopLargeEnoughCleanHalf <- buffer.set.to.half.diam(aopLargeEnoughClean, 0.01)
 
 ```{r}
 #Write out
-sf::st_write(uasLargeEnoughClean, here::here(datDerDir, "uas_polygons_2023_12_13_23_analysis_ready.gpkg"), append = FALSE)
-sf::st_write(uasLargeEnoughCleanHalf, here::here(datDerDir, "uas_polygons_2023_12_13_23_analysis_ready_half_diam.gpkg"), append = FALSE)
+sf::st_write(uasPolyClean, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready.gpkg")), append = FALSE)
+sf::st_write(uasPolyCleanHalf, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready_half_diam.gpkg")), append = FALSE)
 
 #Write out
-sf::st_write(aopLargeEnoughClean, here::here(datDerDir, "niwot_aop_polygons_2023_12_8_23_analysis_ready.gpkg"), append = FALSE)
-sf::st_write(aopLargeEnoughCleanHalf, here::here(datDerDir, "niwot_aop_polygons_2023_12_8_23_analysis_ready_half_diam.gpkg"), append = FALSE)
+sf::st_write(aopPolyClean, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready.gpkg")), append = FALSE)
+sf::st_write(aopPolyCleanHalf, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready_half_diam.gpkg")), append = FALSE)
 
 ```

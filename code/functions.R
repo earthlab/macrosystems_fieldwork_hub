@@ -66,7 +66,7 @@ representative_categorical_cover_analysis <- function(raster,
                                                       raster_cat_df,
                                                       region_shape,
                                                       aoi_shape,
-                                                      run_name = "Not Provided",
+                                                      run_name = "NotProvided",
                                                       cat_base_column_name, 
                                                       aoi_drop_perc = NA,
                                                       region_drop_perc = NA,
@@ -78,6 +78,24 @@ representative_categorical_cover_analysis <- function(raster,
                                                       new_sub_dir = FALSE) {
   
   print(paste0("Operating on run: ", run_name))
+  
+  # Validate inputs
+  if(!out_rast_values %in% c("BOTH", "PERC_COVER", "RAW")) {
+    stop("Invalid value for 'out_rast_values'. Must be one of: 'BOTH', 'PERC_COVER', 'RAW'.")
+  }
+  
+  if(!out_rast_type %in% c("BOTH", "REP", "NOT_REP", "NONE")) {
+    stop("Invalid value for 'out_rast_values'. Must be one of: 'BOTH', 'REP', 'NOT_REP', 'NONE'.")
+  }
+  
+  if(run_name == "NotProvided") {
+    warning("You have not provided a run_name; 'NotProvided' will be used")
+  }
+  
+  if(!cat_base_column_name %in% names(raster_cat_df)) {
+    stop("cat_base_column_name must be one of the column names in raster_cat_df")
+  }
+  
   
   #Setup output directories
   clean_run_name <- run_name %>%
@@ -105,6 +123,8 @@ representative_categorical_cover_analysis <- function(raster,
                                                              cat_base_column = cat_base_column_name)
   landcover_analysis_output_included <- landcover_analysis_output_raw
   
+  
+  
   # Remove any classes that are below the regional drop percentage, if specified
   # This is to keep data clean for rasters with many categories that are not common on the landscape
   if(!is.na(region_drop_perc)) {
@@ -119,6 +139,8 @@ representative_categorical_cover_analysis <- function(raster,
       dplyr::filter(!(.data[[drop_classes_column_name]] %in% drop_classes))
   }
   
+  
+  
   # Remove classes that are below a certain AOI percentage (i.e. that are not adequately represented within the aoi)
   if(!is.na(aoi_drop_perc)) {
     df_represented <- landcover_analysis_output_included |>
@@ -127,8 +149,29 @@ representative_categorical_cover_analysis <- function(raster,
       dplyr::filter(aoi_perc <= aoi_drop_perc)
   }
   
-  #Get percentage of area not represented (only taking into account areas included)
-  perc_area_not_represented <- (sum(df_not_represented$region_count) / sum(landcover_analysis_output_included$region_count)) * 100
+  # OLD VERSION
+  # #Get percentage of area not represented (only taking into account areas included)
+  # perc_area_not_represented <- (sum(df_not_represented$region_count) / sum(landcover_analysis_output_included$region_count)) * 100
+  
+  
+  # NEW VERSION
+  not_rep_count <- df_not_represented |>
+    dplyr::select(cat_base_column_name, region_count, aoi_count, region_perc, aoi_perc) |>
+    dplyr::distinct() |>
+    dplyr::pull(region_count) |>
+    sum()
+  
+  all_count <- landcover_analysis_output_included |>
+    dplyr::select(cat_base_column_name, region_count, aoi_count, region_perc, aoi_perc) |>
+    dplyr::distinct() |>
+    dplyr::pull(region_count) |>
+    sum()
+  
+
+  perc_area_not_represented <- (not_rep_count / all_count) * 100
+  #
+  
+  
   
   # Generate new raster data requested
   
@@ -150,6 +193,7 @@ representative_categorical_cover_analysis <- function(raster,
         as.matrix()
       raster_not_represented <- raster_not_represented |>
         terra::classify(not_rep_classify)
+      
       terra::writeRaster(raster_not_represented,
                          here::here(out_dir, paste0(clean_run_name, "_not_rep_perc_cover.tif")),
                          overwrite = TRUE)
@@ -179,6 +223,7 @@ representative_categorical_cover_analysis <- function(raster,
         as.matrix()
       raster_represented <- raster_represented |>
         terra::classify(rep_classify)
+      
       terra::writeRaster(raster_represented,
                          here::here(out_dir, paste0(clean_run_name, "_rep_perc_cover.tif")),
                          overwrite = TRUE)
@@ -213,6 +258,14 @@ representative_categorical_cover_analysis <- function(raster,
 # group: whether to group the data or not (TRUE, FALSE) - note that if grouped, all other columns from cats will be dropped, and the output will no longer have the associated raster values
 analyze_categorical_cover <- function(aoi_raster, larger_region_raster, raster_cat_df, cat_base_column_name, group = FALSE, cat_group_column_name = NA) {
   
+  # THIS IS NEW #
+  #Ensure that raster categories and active category are set correctly
+  levels(aoi_raster) <- raster_cat_df
+  terra::activeCat(aoi_raster) <- cat_base_column_name
+  levels(larger_region_raster) <- raster_cat_df
+  terra::activeCat(larger_region_raster) <- cat_base_column_name
+  # # #
+  
   #Get frequencies & ensure that freq tables are clean
   print("Getting frequencies")
   aoi_freq <- terra::freq(aoi_raster) |>
@@ -234,7 +287,7 @@ analyze_categorical_cover <- function(aoi_raster, larger_region_raster, raster_c
   names(all_freqs) <- c(cat_base_column_name,
                         "region_count",
                         "aoi_count")
-
+  
   # Join raster cat codes
   
   #Ensure both columns are numeric
@@ -272,7 +325,6 @@ analyze_categorical_cover <- function(aoi_raster, larger_region_raster, raster_c
   
   return(all_freqs)
 }
-
 
 
 
@@ -1551,7 +1603,7 @@ access_data_epa_l3_ecoregions_vsi <- function() {
 #' Install and Load Required Packages Using pak
 #'
 #' This function checks if the specified packages (both CRAN and GitHub) are installed and loads them. 
-#' If any packages are missing, it offers to install them automatically or asks for user permission.
+#' If any packages are missing, it installs them automatically.
 #' It uses the `pak` package for faster and more efficient package installation.
 #'
 #' @param package_list A list of package names to check and install (non-string, e.g., `c(dplyr, here)`).
@@ -1575,29 +1627,36 @@ install_and_load_packages <- function(package_list, auto_install = "n") {
     }
   })
   
+  # # Check if 'renv' is installed; if not, skip the 'renv' check
+  # if (requireNamespace("renv", quietly = TRUE) && renv::is_active()) {
+  #   cat("renv is active. Only loading packages...\n")
+  #   for (pkg in package_list) {
+  #     package_name <- if (grepl("/", pkg)) unlist(strsplit(pkg, "/"))[2] else pkg
+  #     if (!require(package_name, character.only = TRUE)) {
+  #       cat("Failed to load package:", package_name, "\n")
+  #     }
+  #   }
+  #   return(invisible())
+  # }
+  
   # Check if pak is installed; install if not
   if (!requireNamespace("pak", quietly = TRUE)) {
-    cat("The 'pak' package is required for fast installation of packages.\n")
-    response <- if (auto_install == "y") "y" else readline(prompt = "\nDo you want to install the 'pak' package? (y/n): ")
-    if (tolower(response) == "y") {
-      install.packages("pak")
-    } else {
-      stop("Installation cannot proceed without 'pak'. Please install it manually and rerun.")
-    }
+    cat("The 'pak' package is required for fast installation of packages, installing now.\n")
+    install.packages("pak")
   }
   
   # Initialize lists to store missing CRAN and GitHub packages
   missing_cran_packages <- c()
   missing_github_packages <- c()
   
-  # Helper function to get user input
-  get_user_permission <- function(prompt_msg) {
-    if (auto_install == "y") {
-      return("y")
-    } else {
-      return(tolower(readline(prompt = prompt_msg)))
-    }
-  }
+  # # Helper function to get user input
+  # get_user_permission <- function(prompt_msg) {
+  #   if (auto_install == "y") {
+  #     return("y")
+  #   } else {
+  #     return(tolower(readline(prompt = prompt_msg)))
+  #   }
+  # }
   
   # Check for missing packages
   for (pkg in package_list) {
@@ -1618,24 +1677,24 @@ install_and_load_packages <- function(package_list, auto_install = "n") {
   
   # Install missing CRAN packages using pak::pkg_install
   if (length(missing_cran_packages) > 0) {
-    cat("The following CRAN packages are missing: ", paste(missing_cran_packages, collapse = ", "), "\n")
-    response <- get_user_permission("\nDo you want to install the missing CRAN packages? (y/n): ")
-    if (response == "y") {
-      pak::pkg_install(missing_cran_packages, upgrade = TRUE)
-    } else {
-      cat("Skipping installation of missing CRAN packages.\n")
-    }
+    # cat("The following CRAN packages are missing: ", paste(missing_cran_packages, collapse = ", "), "\n")
+    # response <- get_user_permission("\nDo you want to install the missing CRAN packages? (y/n): ")
+    # if (response == "y") {
+    pak::pkg_install(missing_cran_packages, upgrade = TRUE)
+    # } else {
+    #   cat("Skipping installation of missing CRAN packages.\n")
+    # }
   }
   
   # Install missing GitHub packages using pak::pkg_install
   if (length(missing_github_packages) > 0) {
-    cat("The following GitHub packages are missing: ", paste(missing_github_packages, collapse = ", "), "\n")
-    response <- get_user_permission("\nDo you want to install the missing GitHub packages? (y/n): ")
-    if (response == "y") {
-      pak::pkg_install(missing_github_packages, upgrade = TRUE)
-    } else {
-      cat("Skipping installation of missing GitHub packages.\n")
-    }
+    # cat("The following GitHub packages are missing: ", paste(missing_github_packages, collapse = ", "), "\n")
+    # response <- get_user_permission("\nDo you want to install the missing GitHub packages? (y/n): ")
+    # if (response == "y") {
+    pak::pkg_install(missing_github_packages, upgrade = TRUE)
+    # } else {
+    #   cat("Skipping installation of missing GitHub packages.\n")
+    # }
   }
   
   # Load all packages after checking for installation
