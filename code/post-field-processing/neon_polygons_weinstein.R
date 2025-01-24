@@ -1,8 +1,20 @@
+# This script prepares tree canopy polygons from Ben Weinstein to be used for spectral extraction
+# These polygons are those from NEON woody veg surveys that are expected to be visible from above,
+# merged with predicted canopy polygons from Weinstein et al 2024.
+
+# Tyler McIntosh 2025
+
+
+#Setup
+rm(list = ls())
 library(here)
 library(sf)
 library(mapview)
 library(tidyverse)
+source(here::here('code', 'functions.R'))
 
+
+# Read data
 weinstein <- read_csv(here::here('data/manual/weinstein_no_contrib_annotations.csv'))
 
 # Polygons are in UTM for each site, so need to be processed separately
@@ -57,48 +69,11 @@ trees <- trees |>
   
 #Generate half-diameter polygons
 
-#A function to calculate the approximate diameter of the maximum inscribed circle within an irregular polygon. This diameter will be added to the polygons as 'diam'
-#I.e. an estimate of the 'minimum diameter' of the irregular polygon
-#PARAMETERS
-#polys = an sf object representing polygons
-#tolerance = Threshold for considering circles to be touching a boundary.
-calculate.approx.diameter.maximum.inscribed.circle <- function(polys, tolerance) {
-  max.insc.crcs <- geos::geos_maximum_inscribed_crc(polys |>
-                                                      geos::as_geos_geometry(), tolerance = tolerance) |>
-    sf::st_as_sf() |>
-    sf::st_transform(sf::st_crs(polys))
-  diam <- c()
-  for(i in 1:nrow(max.insc.crcs)) {
-    p <- max.insc.crcs[i,]
-    d <- p |>
-      sf::st_cast('MULTIPOINT') %>%
-      sf::st_cast('POINT') %>%
-      sf::st_distance(which = "Euclidean") |>
-      max()
-    diam <- diam |> append(d)
-  }
-  return(cbind(polys, diam))
-}
-
-#A function that uses 'calculate.approx.diameter.maximum.inscribed.circle'
-#to buffer a set of polygons inwards such that they are 'half-diameter' polygons
-#PARAMETERS
-#polys = an sf object representing polygons
-#tolerance = Threshold for considering circles to be touching a boundary.
-buffer.to.half.diam <- function(polys, tolerance) {
-  pWithD <- calculate.approx.diameter.maximum.inscribed.circle(polys, tolerance) |>
-    dplyr::filter(is.finite(diam))
-  newPolys <- pWithD |>
-    dplyr::mutate(geometry = sf::st_buffer(geometry, dist = (diam / 4) * -1)) |>
-    dplyr::rename(old_diam = diam)
-  return(newPolys)
-}
-
 #half_diam_trees <- buffer.set.to.half.diam(trees, tolerance = 0.01) - doesn't seem to work, applying to each individually instead
 
 half_diam_trees <- trees %>%
   split(seq_len(nrow(.))) |>
-  purrr::map(buffer.to.half.diam, 0.01) |>
+  purrr::map(buffer_to_half_diam, 0.01) |>
   dplyr::bind_rows()
 
 x <- trees |> dplyr::filter(siteID == "NIWO")
@@ -108,7 +83,11 @@ mapview(x) + mapview(y, col.regions = "red")
 
 
 # Write out
-sf::st_write(trees, here::here('data', 'derived', 'ard_weinstein_trees.gpkg'))
-sf::st_write(half_diam_trees, here::here('data', 'derived', 'ard_weinstein_trees_half_diam.gpkg'))
+sf::st_write(trees,
+             here::here('data', 'derived', 'ard_weinstein_trees.gpkg'),
+             append = FALSE)
+sf::st_write(half_diam_trees,
+             here::here('data', 'derived', 'ard_weinstein_trees_half_diam.gpkg'),
+             append = FALSE)
 
 

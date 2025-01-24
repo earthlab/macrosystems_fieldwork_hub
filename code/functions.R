@@ -1144,6 +1144,109 @@ write.dji.kml <- function(sfObj, fileNm, outDir) {
 }
 
 
+# Creating half-diameter polygons ----
+
+#' Calculate Approximate Diameter of Maximum Inscribed Circle
+#'
+#' This function calculates the approximate diameter of the maximum inscribed circle 
+#' within irregular polygons in an `sf` object. The result is added as a new column 
+#' named `diam` to the input `sf` object.
+#'
+#' @param polys An `sf` object representing the polygons.
+#' @param tolerance A numeric value specifying the threshold for considering circles 
+#' to be touching a boundary.
+#'
+#' @return An `sf` object containing the original polygons with an additional column `diam`, 
+#' which represents the approximate diameter of the maximum inscribed circle for each polygon.
+#'
+#' @details
+#' This function uses the `geos::geos_maximum_inscribed_crc()` function to calculate 
+#' the largest inscribed circle for each polygon. The diameter is then estimated as 
+#' the maximum distance between boundary points of the circle. The result is returned 
+#' as an `sf` object with the `diam` column appended.
+#'
+#' @importFrom geos geos_maximum_inscribed_crc as_geos_geometry
+#' @importFrom sf st_as_sf st_crs st_transform st_cast st_distance
+#' @importFrom magrittr %>%
+#' @examples
+#' \dontrun{
+#' # Example with sample polygons
+#' library(sf)
+#' library(geos)
+#' nc <- st_read(system.file("shape/nc.shp", package = "sf"))
+#'
+#' # Calculate diameters with a specified tolerance
+#' nc_with_diam <- calculate_approx_diameter_maximum_inscribed_circle(nc, tolerance = 0.1)
+#' head(nc_with_diam)
+#' }
+#'
+#' @export
+calculate_approx_diameter_maximum_inscribed_circle <- function(polys, tolerance) {
+  max_insc_crcs <- geos::geos_maximum_inscribed_crc(polys |>
+                                                      geos::as_geos_geometry(), tolerance = tolerance) |>
+    sf::st_as_sf() |>
+    sf::st_transform(sf::st_crs(polys))
+  diam <- c()
+  for (i in 1:nrow(max_insc_crcs)) {
+    p <- max_insc_crcs[i,]
+    d <- p |>
+      sf::st_cast('MULTIPOINT') %>%
+      sf::st_cast('POINT') %>%
+      sf::st_distance(which = "Euclidean") |>
+      max()
+    diam <- diam |> append(d)
+  }
+  return(cbind(polys, diam))
+}
+
+#' Buffer Polygons to Half-Diameter
+#'
+#' This function buffers polygons inwards based on half the approximate diameter of 
+#' their maximum inscribed circle. The resulting polygons are "half-diameter polygons".
+#'
+#' @param poly An `sf` object representing the polygons.
+#' @param tolerance A numeric value specifying the threshold for considering circles 
+#' to be touching a boundary.
+#'
+#' @return An `sf` object with the buffered polygons and an additional column 
+#' `old_diam` that contains the original diameter values.
+#'
+#' @details
+#' This function first calculates the approximate diameter of the maximum inscribed 
+#' circle for each polygon using the 
+#' \code{\link{calculate_approx_diameter_maximum_inscribed_circle}} function. It then 
+#' buffers the polygons inward by a distance equal to half the diameter.
+#'
+#' The resulting polygons are added to a new column `geometry`, while the original 
+#' diameters are stored in a column `old_diam`.
+#'
+#' @importFrom dplyr filter mutate rename
+#' @importFrom sf st_buffer
+#' @importFrom magrittr %>%
+#' @examples
+#' \dontrun{
+#' # Example with sample polygons
+#' library(sf)
+#' library(geos)
+#' nc <- st_read(system.file("shape/nc.shp", package = "sf"))
+#'
+#' # Create half-diameter polygons
+#' nc_half_diam <- buffer_to_half_diam(nc, tolerance = 0.1)
+#' head(nc_half_diam)
+#' }
+#'
+#' @export
+buffer_to_half_diam <- function(poly, tolerance) {
+  pWithD <- calculate_approx_diameter_maximum_inscribed_circle(poly, tolerance) |>
+    dplyr::filter(is.finite(diam))
+  newPolys <- pWithD |>
+    dplyr::mutate(geometry = sf::st_buffer(geometry, dist = (diam / 4) * -1)) |>
+    dplyr::rename(old_diam = diam)
+  return(newPolys)
+}
+
+
+
 # Data access ----
 
 
@@ -1595,6 +1698,54 @@ access_data_epa_l3_ecoregions_vsi <- function() {
   return(epa_l3)
 }
 
+## ArcGIS Online ----
+
+#' Get an ArcGIS Online Token
+#'
+#' This function generates a token for accessing ArcGIS Online resources. 
+#' It prompts the user for their ArcGIS username and password and uses these 
+#' credentials to obtain a token via the ArcGIS REST API.
+#'
+#' @return A character string containing the ArcGIS Online token.
+#'
+#' @details 
+#' The function uses the ArcGIS REST API endpoint 
+#' (\url{https://www.arcgis.com/sharing/rest/generateToken}) to authenticate the 
+#' user and generate a token. The token can be used for subsequent API requests 
+#' to access ArcGIS Online resources. The function makes use of the `httr` 
+#' package for the HTTP POST request and the `askpass` package to securely 
+#' request the user's password.
+#'
+#' @importFrom httr POST content
+#' @importFrom askpass askpass
+#'
+#' @examples
+#' \dontrun{
+#' # Generate an ArcGIS Online token
+#' token <- get_arcgis_online_token()
+#' print(token)
+#' }
+#'
+#' @export
+get_arcgis_online_token <- function() {
+  username <- readline(prompt = "Enter your ArcGIS username: ")
+  password <- askpass::askpass(prompt = "Enter your ArcGIS password: ")
+  
+  response <- httr::POST(
+    url = "https://www.arcgis.com/sharing/rest/generateToken",
+    body = list(
+      username = username,
+      password = password,
+      referer = "https://www.arcgis.com",
+      f = "json"
+    )
+  )
+  
+  token <- httr::content(response)$token
+  return(token)
+}
+
+
 
 
 # Utility ----
@@ -1920,6 +2071,49 @@ st_write_shp <- function(shp, location, filename, zip_only = FALSE, overwrite = 
     unlink(out_dir, recursive = TRUE)
   }
 }
+
+
+#' Add Polygon Areas to an sf Object
+#'
+#' This function calculates the area of each polygon in an `sf` object, 
+#' appends the area as a new column, and names the column based on the user-specified parameter.
+#'
+#' @param polys An `sf` object containing polygon geometries.
+#' @param nm A character string specifying the name of the new column to store polygon areas.
+#'
+#' @return An `sf` object with an additional column containing the polygon areas (in the same units as the input `sf` object).
+#'
+#' @details 
+#' The function computes polygon areas using `sf::st_area()`, removes the units with `units::drop_units()`, 
+#' and appends the areas as a new column to the input `sf` object. The new column's name is defined by the user 
+#' through the `nm` argument. The function maintains the structure and properties of the original `sf` object.
+#'
+#' @importFrom sf st_area
+#' @importFrom units drop_units
+#' @importFrom dplyr rename
+#' @importFrom magrittr %>%
+#'
+#' @examples
+#' \dontrun{
+#' # Load example data
+#' library(sf)
+#' nc <- st_read(system.file("shape/nc.shp", package = "sf"))
+#'
+#' # Add a column with polygon areas
+#' nc_with_area <- st_area_to_poly(nc, "area")
+#' head(nc_with_area)
+#' }
+#'
+#' @export
+st_area_to_poly <- function(polys, nm) {
+  out <- polys |>
+    sf::st_area() |> # get area from sf package
+    units::drop_units() %>%
+    cbind(polys, .) |> # join to polygons
+    dplyr::rename({{nm}} := `.`) # rename
+  return(out)
+}
+
 
 
 #Function to clip a raster to a vector, ensuring in same projection
