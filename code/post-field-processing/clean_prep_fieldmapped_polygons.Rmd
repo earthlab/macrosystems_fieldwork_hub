@@ -23,7 +23,7 @@ This script uses the following naming conventions wherever possible:
 #clean
 rm(list = ls())
 
-today <- "1_17_2025" #a string containing the date of run
+today <- "1_24_2025" #a string containing the date of run
 
 ```
 
@@ -129,15 +129,20 @@ if (!dir.exists(datDerDir)){
 
 epsg <- "EPSG:5070"
 
+states <- tigris::states() |>
+  sf::st_transform(epsg)
+counties <- tigris::counties() |>
+  sf::st_transform(epsg) 
+
 #Load raw data from ArcGIS Online
 # aopPoly <- sf::st_read(here::here('data', 'raw', 'aop_macrosystems_data_1_7_25.geojson')) |>
 #   sf::st_transform(epsg)
 # uasPoly <- sf::st_read(here::here('data', 'raw', 'macrosystems_uas_polygons_2023_12_13_23.gpkg')) |>
 #   sf::st_transform(epsg)
 
-
-#Get token - use Tyler's ArcGIS Online login info
-arc_token <- get_arcgis_online_token()
+# Not necessary - made files public
+##Get token - use Tyler's ArcGIS Online login info
+#arc_token <- get_arcgis_online_token()
 
 
 # Set parameters for both data requests
@@ -145,8 +150,9 @@ query_params <- list(where = "1=1",
                      outFields = "*",
                      f = "json")
 
-#Get AOP polygon data
+#Get AOP polygon data from Tyler's ArcGIS online account
 aop_polys_url <- "https://services.arcgis.com/b3fMqPOmotX6SV4k/ArcGIS/rest/services/niwot_aop_s_lower_hp_macrosystems_data/FeatureServer/0/QUERY"
+
 aopPoly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = aop_polys_url,
                                                                    query_params = query_params,
                                                                    max_record = 1000,
@@ -154,7 +160,7 @@ aopPoly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = aop_polys_u
                                                                    timeout = 500) |>
   sf::st_transform(epsg)
 
-# Get UAS polygon data
+# Get UAS polygon data from Tyler's ArcGIS online account
 uas_polys_url <- "https://services.arcgis.com/b3fMqPOmotX6SV4k/ArcGIS/rest/services/macrosystems_uas_polygons_2023/FeatureServer/0/QUERY"
 uasPoly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = uas_polys_url,
                                                                    query_params = query_params,
@@ -162,6 +168,90 @@ uasPoly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = uas_polys_u
                                                                    n = "all",
                                                                    timeout = 500) |>
   sf::st_transform(epsg)
+
+
+# Get corrected polygon data provided by Solomon Wilcox (undergrad)
+# These polygons needed to be corrected due to issues with the drone flights that resulted in mapping onto RGB imagery rather than directly onto MicaSense imagery
+# Solomon georeferenced the RGB imagery to the MicaSense imagery and then moved the polygons to correctly correspond
+# For the Kremmling area and the Beartooth Area, these geometries need to be used instead of those in the main files
+# Solomon exported data as .shp files when he worked with them, meaning that long attribute names got shortened. The columns are manually re-named here
+
+
+#Kremmling
+krem_uas_polys_url <- "https://services.arcgis.com/b3fMqPOmotX6SV4k/arcgis/rest/services/kremmling_polygons_FINAL/FeatureServer/0/QUERY"
+krem_uas_poly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = krem_uas_polys_url,
+                                                                   query_params = query_params,
+                                                                   max_record = 1000,
+                                                                   n = "all",
+                                                                   timeout = 500) |>
+  sf::st_transform(epsg) |>
+  dplyr::rename(CreationDate = CreationDa,
+                cover_subcategory = cover_subc,
+                cover_category = cover_cate,
+                og_flight_date = og_flight_,
+                collector_name = collector_,
+                collection_date = collection,
+                description_notes = descriptio,
+                woody_shrub_height = woody_shru,
+                other_species = other_spec,
+                other_subcategory = other_subc,
+                dead_subcategory = dead_subca,
+                evt_class_field = evt_class_,
+                tree_height = tree_heigh) |>
+  sf::st_join(states |>
+                dplyr::select(STUSPS), join = st_within) |>
+  dplyr::rename(state = STUSPS) |>
+  dplyr::mutate(aop_site = dplyr::case_when(
+                  state == "WY" ~ "YELL",
+                  state == "WA" ~ "WREF",
+                  state == "CO" ~ "NIWO/RMNP",
+                  TRUE ~ NA_character_
+                ),
+                imagery = "UAS",
+                field_year = lubridate::year(CreationDate))
+
+#Beartooth - Solomon left these polygons with all the others, so the edited polygons need to be extracted
+#some of the polygons also accidentally got duplicated, so the duplicates need to be removed
+bear_uas_polys_url <- "https://services.arcgis.com/b3fMqPOmotX6SV4k/arcgis/rest/services/beartooth_polygons_FINAL/FeatureServer/0/QUERY"
+bear_uas_poly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = bear_uas_polys_url,
+                                                                   query_params = query_params,
+                                                                   max_record = 1000,
+                                                                   n = "all",
+                                                                   timeout = 500) |>
+  sf::st_transform(epsg) |>
+  dplyr::distinct() |>
+  dplyr::select(-Shape__Area, -Shape__Length) |>
+  dplyr::rename(Shape__Area = Shape__Are,
+                Shape__Length = Shape__Len,
+                CreationDate = CreationDa,
+                cover_subcategory = cover_subc,
+                cover_category = cover_cate,
+                og_flight_date = og_flight_,
+                collector_name = collector_,
+                collection_date = collection,
+                description_notes = descriptio,
+                woody_shrub_height = woody_shru,
+                other_species = other_spec,
+                other_subcategory = other_subc,
+                dead_subcategory = dead_subca,
+                evt_class_field = evt_class_,
+                tree_height = tree_heigh)
+
+bear_uas_poly_clean <- bear_uas_poly |>
+  sf::st_join(states |>
+                dplyr::select(STUSPS), join = st_within) |>
+  dplyr::rename(state = STUSPS) |>
+  dplyr::filter(state == "WY") |>
+  dplyr::mutate(aop_site = dplyr::case_when(
+                  state == "WY" ~ "YELL",
+                  state == "WA" ~ "WREF",
+                  state == "CO" ~ "NIWO/RMNP",
+                  TRUE ~ NA_character_
+                ),
+                imagery = "UAS",
+                field_year = lubridate::year(CreationDate))
+
+
 
 #Check polygon validity
 unique(sf::st_is_valid(aopPoly))
@@ -178,9 +268,6 @@ uasPoly <- uasPoly |>
   sf::st_cast("POLYGON")
 
 # Add state/site
-states <- tigris::states() |>
-  sf::st_transform(epsg)
-
 aopPoly <- aopPoly |>
   sf::st_join(states |> dplyr::select(STUSPS), join = st_within) |>
   dplyr::rename(state = STUSPS) |>
@@ -200,6 +287,15 @@ uasPoly <- uasPoly |>
     state == "CO" ~ "NIWO/RMNP",
     TRUE ~ NA_character_
   ))
+
+
+#ADD THE MANUALLY-CORRECTED POLYGONS FROM SOLOMON BACK TO THE MAIN GROUP
+uasPoly <- uasPoly |>
+  dplyr::filter(state != "WY") |>
+  dplyr::bind_rows(bear_uas_poly_clean) |>
+  dplyr::bind_rows(krem_uas_poly) |>
+  dplyr::select(-FID)
+
 
 
 ```
@@ -222,7 +318,7 @@ unique(uasPoly$dead_subcategory)
 
 ```
 
-# Fix AOP species data
+# Fix AOP species data from before we started using scientific names
 
 ```{r}
 
@@ -455,11 +551,11 @@ mapview(uasPolyClean) + mapview(uasPolyCleanHalf, col.regions = "red")
 
 ```{r}
 #Write out
-sf::st_write(uasPolyClean, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready.gpkg")), append = FALSE)
-sf::st_write(uasPolyCleanHalf, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready_half_diam.gpkg")), append = FALSE)
+sf::st_write(uasPolyClean, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready.geojson")), append = FALSE)
+sf::st_write(uasPolyCleanHalf, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready_half_diam.geojson")), append = FALSE)
 
 #Write out
-sf::st_write(aopPolyClean, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready.gpkg")), append = FALSE)
-sf::st_write(aopPolyCleanHalf, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready_half_diam.gpkg")), append = FALSE)
+sf::st_write(aopPolyClean, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready.geojson")), append = FALSE)
+sf::st_write(aopPolyCleanHalf, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready_half_diam.geojson")), append = FALSE)
 
 ```

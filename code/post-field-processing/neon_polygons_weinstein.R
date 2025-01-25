@@ -84,10 +84,10 @@ mapview(x) + mapview(y, col.regions = "red")
 
 # Write out
 sf::st_write(trees,
-             here::here('data', 'derived', 'ard_weinstein_trees.gpkg'),
+             here::here('data', 'derived', 'ard_weinstein_trees.geojson'),
              append = FALSE)
 sf::st_write(half_diam_trees,
-             here::here('data', 'derived', 'ard_weinstein_trees_half_diam.gpkg'),
+             here::here('data', 'derived', 'ard_weinstein_trees_half_diam.geojson'),
              append = FALSE)
 
 
