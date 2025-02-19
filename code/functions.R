@@ -1640,9 +1640,6 @@ access_neon_domains_shp <- function() {
 #' and `/vsicurl/` mechanisms to stream the shapefile from the zipped file. The file is accessed via a URL without the need to 
 #' download it locally. This method allows efficient access to the shapefile data using the `sf` package.
 #'
-#' @source
-#' U.S. EPA Ecoregions Data: \url{https://gaftp.epa.gov/EPADataCommons/ORD/Ecoregions/cec_na/}
-#'
 #' @references
 #' U.S. EPA Ecoregions Information: \url{https://www.epa.gov/eco-research/ecoregions-north-america}
 #'
@@ -1655,7 +1652,7 @@ access_neon_domains_shp <- function() {
 access_data_epa_l2_ecoregions_vsi <- function() {
   epa_l2 <- paste0(
     "/vsizip/vsicurl/",
-    "https://gaftp.epa.gov/EPADataCommons/ORD/Ecoregions/cec_na/na_cec_eco_l2.zip",
+    "https://dmap-prod-oms-edc.s3.us-east-1.amazonaws.com/ORD/Ecoregions/cec_na/na_cec_eco_l2.zip",
     "/NA_CEC_Eco_Level2.shp"
   ) |>
     sf::st_read()
@@ -1675,9 +1672,6 @@ access_data_epa_l2_ecoregions_vsi <- function() {
 #' and `/vsicurl/` mechanisms to stream the shapefile from the zipped file. The file is accessed via a URL without the need to 
 #' download it locally. This method allows efficient access to the shapefile data using the `sf` package.
 #'
-#' @source
-#' U.S. EPA Ecoregions Data: \url{https://gaftp.epa.gov/EPADataCommons/ORD/Ecoregions/us/}
-#' 
 #' @references
 #' U.S. EPA Ecoregions Information: \url{https://www.epa.gov/eco-research/ecoregions-north-america}
 #'
@@ -1690,8 +1684,8 @@ access_data_epa_l2_ecoregions_vsi <- function() {
 access_data_epa_l3_ecoregions_vsi <- function() {
   epa_l3 <- paste0(
     "/vsizip/vsicurl/",
-    "https://gaftp.epa.gov/EPADataCommons/ORD/Ecoregions/us/us_eco_l3.zip",
-    "/us_eco_l3.shp"
+    "https://dmap-prod-oms-edc.s3.us-east-1.amazonaws.com/ORD/Ecoregions/cec_na/NA_CEC_Eco_Level3.zip",
+    "/NA_CEC_Eco_Level3.shp"
   ) |>
     sf::st_read()
   
@@ -1751,119 +1745,261 @@ get_arcgis_online_token <- function() {
 # Utility ----
 
 
-#' Install and Load Required Packages Using pak
-#'
-#' This function checks if the specified packages (both CRAN and GitHub) are installed and loads them. 
-#' If any packages are missing, it installs them automatically.
-#' It uses the `pak` package for faster and more efficient package installation.
-#'
-#' @param package_list A list of package names to check and install (non-string, e.g., `c(dplyr, here)`).
-#' GitHub packages should be specified as `username/repo` in strings.
-#' @param auto_install A character ("y" or "n", default is "n"). If "y", installs all required packages 
-#' without asking for user permission. If "n", asks for permission from the user.
-#' @return No return value. Installs and loads the specified packages as needed.
-#' @examples
-#' \dontrun{
-#' install_and_load_packages(c(dplyr, here, "username/repo"))
-#' }
-#' @importFrom pak pkg_install
-#' @export
-install_and_load_packages <- function(package_list, auto_install = "n") {
-  # Convert non-string package names to strings
-  package_list <- lapply(package_list, function(pkg) {
-    if (is.symbol(pkg)) {
-      deparse(substitute(pkg))
-    } else {
-      pkg
-    }
-  })
+install_and_load_packages <- function(package_list) {
+  if (!is.character(package_list)) {
+    stop("package_list must be a character vector.")
+  }
   
-  # # Check if 'renv' is installed; if not, skip the 'renv' check
-  # if (requireNamespace("renv", quietly = TRUE) && renv::is_active()) {
-  #   cat("renv is active. Only loading packages...\n")
-  #   for (pkg in package_list) {
-  #     package_name <- if (grepl("/", pkg)) unlist(strsplit(pkg, "/"))[2] else pkg
-  #     if (!require(package_name, character.only = TRUE)) {
-  #       cat("Failed to load package:", package_name, "\n")
-  #     }
-  #   }
-  #   return(invisible())
-  # }
-  
-  # Check if pak is installed; install if not
+  # Ensure 'pak' is installed
   if (!requireNamespace("pak", quietly = TRUE)) {
-    cat("The 'pak' package is required for fast installation of packages, installing now.\n")
+    message("The 'pak' package is required for fast installation of packages, installing now.")
     install.packages("pak")
   }
   
-  # Initialize lists to store missing CRAN and GitHub packages
-  missing_cran_packages <- c()
-  missing_github_packages <- c()
+  # Split into CRAN and GitHub packages
+  cran_packages <- package_list[!grepl("/", package_list)]
+  github_packages <- package_list[grepl("/", package_list)]
   
-  # # Helper function to get user input
-  # get_user_permission <- function(prompt_msg) {
-  #   if (auto_install == "y") {
-  #     return("y")
-  #   } else {
-  #     return(tolower(readline(prompt = prompt_msg)))
-  #   }
-  # }
+  # Identify missing packages
+  missing_cran <- cran_packages[!sapply(cran_packages, requireNamespace, quietly = TRUE)]
+  missing_github <- github_packages[!sapply(gsub(".*/", "", github_packages), requireNamespace, quietly = TRUE)]
   
-  # Check for missing packages
-  for (pkg in package_list) {
-    if (grepl("/", pkg)) { # GitHub package
-      package_name <- unlist(strsplit(pkg, "/"))[2]
-      package_loaded <- require(package_name, character.only = TRUE, quietly = TRUE)
-    } else { # CRAN package
-      package_loaded <- require(pkg, character.only = TRUE, quietly = TRUE)
-    }
-    if (!package_loaded) {
-      if (grepl("/", pkg)) {
-        missing_github_packages <- c(missing_github_packages, pkg)
-      } else {
-        missing_cran_packages <- c(missing_cran_packages, pkg)
-      }
-    }
+  # Install missing CRAN packages one by one
+  for (pkg in missing_cran) {
+    message("Installing missing CRAN package: ", pkg)
+    tryCatch({
+      pak::pkg_install(pkg, upgrade = TRUE)
+    }, error = function(e) {
+      message("❌ Failed to install ", pkg, ": ", e$message)
+    })
   }
   
-  # Install missing CRAN packages using pak::pkg_install
-  if (length(missing_cran_packages) > 0) {
-    # cat("The following CRAN packages are missing: ", paste(missing_cran_packages, collapse = ", "), "\n")
-    # response <- get_user_permission("\nDo you want to install the missing CRAN packages? (y/n): ")
-    # if (response == "y") {
-    pak::pkg_install(missing_cran_packages, upgrade = TRUE)
-    # } else {
-    #   cat("Skipping installation of missing CRAN packages.\n")
-    # }
+  # Install missing GitHub packages one by one
+  for (pkg in missing_github) {
+    message("Installing missing GitHub package: ", pkg)
+    tryCatch({
+      pak::pkg_install(pkg, upgrade = TRUE)
+    }, error = function(e) {
+      message("❌ Failed to install ", pkg, ": ", e$message)
+    })
   }
   
-  # Install missing GitHub packages using pak::pkg_install
-  if (length(missing_github_packages) > 0) {
-    # cat("The following GitHub packages are missing: ", paste(missing_github_packages, collapse = ", "), "\n")
-    # response <- get_user_permission("\nDo you want to install the missing GitHub packages? (y/n): ")
-    # if (response == "y") {
-    pak::pkg_install(missing_github_packages, upgrade = TRUE)
-    # } else {
-    #   cat("Skipping installation of missing GitHub packages.\n")
-    # }
+  # Re-check if packages installed successfully
+  still_missing <- package_list[!sapply(gsub(".*/", "", package_list), requireNamespace, quietly = TRUE)]
+  
+  if (length(still_missing) > 0) {
+    message("⚠️ The following packages failed to install: ", paste(still_missing, collapse = ", "))
+    message("Try manually running: pak::pkg_install(c(", paste(shQuote(still_missing), collapse = ", "), "))")
+    return(invisible())
   }
   
-  # Load all packages after checking for installation
-  for (pkg in package_list) {
-    if (grepl("/", pkg)) { # GitHub package
-      package_name <- unlist(strsplit(pkg, "/"))[2]
-      if (!require(package_name, character.only = TRUE)) {
-        cat("Failed to load GitHub package:", package_name, "\n")
-      }
-    } else { # CRAN package
-      if (!require(pkg, character.only = TRUE)) {
-        cat("Failed to load CRAN package:", pkg, "\n")
-      }
+  # Load installed packages
+  for (pkg in cran_packages) {
+    if (!library(pkg, character.only = TRUE, logical.return = TRUE)) {
+      message("Failed to load CRAN package: ", pkg)
     }
   }
   
-  cat("All specified packages installed and loaded.\n")
+  for (pkg in github_packages) {
+    pkg_name <- gsub(".*/", "", pkg)
+    if (!library(pkg_name, character.only = TRUE, logical.return = TRUE)) {
+      message("Failed to load GitHub package: ", pkg_name)
+    }
+  }
+  
+  message("✅ All specified packages installed and loaded.")
 }
+
+
+#' #' Install and Load Required Packages Using pak
+#' #'
+#' #' This function checks if the specified packages (both CRAN and GitHub) are installed and loads them. 
+#' #' If any packages are missing, it installs them automatically without asking for user confirmation.
+#' #' It uses the `pak` package for faster and more efficient package installation.
+#' #'
+#' #' @param package_list A character vector of package names (e.g., `c("dplyr", "here")`).
+#' #' GitHub packages should be specified as `username/repo` in strings.
+#' #' @return No return value. Installs and loads the specified packages as needed.
+#' #' @examples
+#' #' \dontrun{
+#' #' install_and_load_packages(c("dplyr", "here", "username/repo"))
+#' #' }
+#' #' @importFrom pak pkg_install
+#' #' @export
+#' install_and_load_packages <- function(package_list) {
+#'   if (!is.character(package_list)) {
+#'     stop("package_list must be a character vector.")
+#'   }
+#'   
+#'   # Ensure 'pak' is installed
+#'   if (!requireNamespace("pak", quietly = TRUE)) {
+#'     message("The 'pak' package is required for fast installation of packages, installing now.")
+#'     install.packages("pak")
+#'   }
+#'   
+#'   # Split into CRAN and GitHub packages
+#'   cran_packages <- package_list[!grepl("/", package_list)]
+#'   github_packages <- package_list[grepl("/", package_list)]
+#'   
+#'   # Identify missing packages
+#'   missing_cran <- cran_packages[!sapply(cran_packages, requireNamespace, quietly = TRUE)]
+#'   missing_github <- github_packages[!sapply(gsub(".*/", "", github_packages), requireNamespace, quietly = TRUE)]
+#'   
+#'   # Install missing CRAN packages
+#'   if (length(missing_cran) > 0) {
+#'     message("Installing missing CRAN packages: ", paste(missing_cran, collapse = ", "))
+#'     tryCatch({
+#'       pak::pkg_install(missing_cran, upgrade = TRUE)
+#'     }, error = function(e) {
+#'       message("Failed to install some CRAN packages: ", e$message)
+#'     })
+#'   }
+#'   
+#'   # Install missing GitHub packages
+#'   if (length(missing_github) > 0) {
+#'     message("Installing missing GitHub packages: ", paste(missing_github, collapse = ", "))
+#'     tryCatch({
+#'       pak::pkg_install(missing_github, upgrade = TRUE)
+#'     }, error = function(e) {
+#'       message("Failed to install some GitHub packages: ", e$message)
+#'     })
+#'   }
+#'   
+#'   # Load installed packages
+#'   for (pkg in cran_packages) {
+#'     if (!library(pkg, character.only = TRUE, logical.return = TRUE)) {
+#'       message("Failed to load CRAN package: ", pkg)
+#'     }
+#'   }
+#'   
+#'   for (pkg in github_packages) {
+#'     pkg_name <- gsub(".*/", "", pkg)
+#'     if (!library(pkg_name, character.only = TRUE, logical.return = TRUE)) {
+#'       message("Failed to load GitHub package: ", pkg_name)
+#'     }
+#'   }
+#'   
+#'   message("All specified packages installed and loaded.")
+#' }
+
+
+
+
+
+#' 
+#' #' Install and Load Required Packages Using pak
+#' #'
+#' #' This function checks if the specified packages (both CRAN and GitHub) are installed and loads them. 
+#' #' If any packages are missing, it installs them automatically.
+#' #' It uses the `pak` package for faster and more efficient package installation.
+#' #'
+#' #' @param package_list A list of package names to check and install (non-string, e.g., `c(dplyr, here)`).
+#' #' GitHub packages should be specified as `username/repo` in strings.
+#' #' @param auto_install A character ("y" or "n", default is "n"). If "y", installs all required packages 
+#' #' without asking for user permission. If "n", asks for permission from the user.
+#' #' @return No return value. Installs and loads the specified packages as needed.
+#' #' @examples
+#' #' \dontrun{
+#' #' install_and_load_packages(c(dplyr, here, "username/repo"))
+#' #' }
+#' #' @importFrom pak pkg_install
+#' #' @export
+#' install_and_load_packages <- function(package_list, auto_install = "n") {
+#'   # Convert non-string package names to strings
+#'   package_list <- lapply(package_list, function(pkg) {
+#'     if (is.symbol(pkg)) {
+#'       deparse(substitute(pkg))
+#'     } else {
+#'       pkg
+#'     }
+#'   })
+#'   
+#'   # # Check if 'renv' is installed; if not, skip the 'renv' check
+#'   # if (requireNamespace("renv", quietly = TRUE) && renv::is_active()) {
+#'   #   cat("renv is active. Only loading packages...\n")
+#'   #   for (pkg in package_list) {
+#'   #     package_name <- if (grepl("/", pkg)) unlist(strsplit(pkg, "/"))[2] else pkg
+#'   #     if (!require(package_name, character.only = TRUE)) {
+#'   #       cat("Failed to load package:", package_name, "\n")
+#'   #     }
+#'   #   }
+#'   #   return(invisible())
+#'   # }
+#'   
+#'   # Check if pak is installed; install if not
+#'   if (!requireNamespace("pak", quietly = TRUE)) {
+#'     cat("The 'pak' package is required for fast installation of packages, installing now.\n")
+#'     install.packages("pak")
+#'   }
+#'   
+#'   # Initialize lists to store missing CRAN and GitHub packages
+#'   missing_cran_packages <- c()
+#'   missing_github_packages <- c()
+#'   
+#'   # # Helper function to get user input
+#'   # get_user_permission <- function(prompt_msg) {
+#'   #   if (auto_install == "y") {
+#'   #     return("y")
+#'   #   } else {
+#'   #     return(tolower(readline(prompt = prompt_msg)))
+#'   #   }
+#'   # }
+#'   
+#'   # Check for missing packages
+#'   for (pkg in package_list) {
+#'     if (grepl("/", pkg)) { # GitHub package
+#'       package_name <- unlist(strsplit(pkg, "/"))[2]
+#'       package_loaded <- require(package_name, character.only = TRUE, quietly = TRUE)
+#'     } else { # CRAN package
+#'       package_loaded <- require(pkg, character.only = TRUE, quietly = TRUE)
+#'     }
+#'     if (!package_loaded) {
+#'       if (grepl("/", pkg)) {
+#'         missing_github_packages <- c(missing_github_packages, pkg)
+#'       } else {
+#'         missing_cran_packages <- c(missing_cran_packages, pkg)
+#'       }
+#'     }
+#'   }
+#'   
+#'   # Install missing CRAN packages using pak::pkg_install
+#'   if (length(missing_cran_packages) > 0) {
+#'     # cat("The following CRAN packages are missing: ", paste(missing_cran_packages, collapse = ", "), "\n")
+#'     # response <- get_user_permission("\nDo you want to install the missing CRAN packages? (y/n): ")
+#'     # if (response == "y") {
+#'     pak::pkg_install(missing_cran_packages, upgrade = TRUE)
+#'     # } else {
+#'     #   cat("Skipping installation of missing CRAN packages.\n")
+#'     # }
+#'   }
+#'   
+#'   # Install missing GitHub packages using pak::pkg_install
+#'   if (length(missing_github_packages) > 0) {
+#'     # cat("The following GitHub packages are missing: ", paste(missing_github_packages, collapse = ", "), "\n")
+#'     # response <- get_user_permission("\nDo you want to install the missing GitHub packages? (y/n): ")
+#'     # if (response == "y") {
+#'     pak::pkg_install(missing_github_packages, upgrade = TRUE)
+#'     # } else {
+#'     #   cat("Skipping installation of missing GitHub packages.\n")
+#'     # }
+#'   }
+#'   
+#'   # Load all packages after checking for installation
+#'   for (pkg in package_list) {
+#'     if (grepl("/", pkg)) { # GitHub package
+#'       package_name <- unlist(strsplit(pkg, "/"))[2]
+#'       if (!require(package_name, character.only = TRUE)) {
+#'         cat("Failed to load GitHub package:", package_name, "\n")
+#'       }
+#'     } else { # CRAN package
+#'       if (!require(pkg, character.only = TRUE)) {
+#'         cat("Failed to load CRAN package:", pkg, "\n")
+#'       }
+#'     }
+#'   }
+#'   
+#'   cat("All specified packages installed and loaded.\n")
+#' }
 
 
 #' Ensure Directory Exists
@@ -2454,3 +2590,103 @@ access_data_get_x_from_arcgis_rest_api_geojson <- function(base_url, query_param
   return(all_data_sf)
 }
 
+
+#' Extract Topographic Features for an sf Object
+#'
+#' This function extracts topographic features, including elevation, slope, and aspect, 
+#' for a given `sf` object. The function allows extracting values at the centroid of each 
+#' feature or aggregating values over the entire feature using `exactextractr`.
+#'
+#' @param sf_set An `sf` object representing spatial features.
+#' @param centroid Logical. If `TRUE`, extracts topographic values at the centroid of 
+#'   each feature; otherwise, values are aggregated over the entire feature using `exact_extract`. 
+#'   Default is `TRUE`.
+#' @param z Integer. The zoom level for the elevation raster retrieved using `elevatr::get_elev_raster()`. 
+#'   Higher values provide higher resolution. Default is `12` (~30m resolution).
+#' @param ... Additional arguments passed to `exact_extract()` when `centroid = FALSE`.
+#'
+#' @return An `sf` object with added columns:
+#'   - `elevation`: Elevation values (meters).
+#'   - `slope`: Slope values (degrees).
+#'   - `aspect`: Aspect values (degrees, where 0° = North).
+#'
+#' @details
+#' - When `centroid = TRUE`, the function computes the centroid of each feature and extracts 
+#'   the elevation, slope, and aspect values at that point.
+#' - When `centroid = FALSE`, `exact_extract()` is used to aggregate values over each feature.
+#' - The function internally converts the elevation raster to a `terra` raster for slope 
+#'   and aspect calculations.
+#'
+#' @importFrom sf st_bbox st_crs st_centroid
+#' @importFrom elevatr get_elev_raster
+#' @importFrom terra rast terrain extract
+#' @importFrom exactextractr exact_extract
+#' @importFrom dplyr mutate
+#'
+#' @examples
+#' \dontrun{
+#' library(sf)
+#' library(elevatr)
+#' library(terra)
+#' library(exactextractr)
+#' library(dplyr)
+#' 
+#' # Example sf object (polygon)
+#' nc <- sf::st_read(system.file("shape/nc.shp", package="sf"))
+#' 
+#' # Extract topographic features at centroids
+#' nc_topo <- extract_topo(nc, centroid = TRUE)
+#' 
+#' # Extract topographic features using exact extraction
+#' nc_topo2 <- extract_topo(nc, centroid = FALSE, fun = mean)
+#' }
+#'
+#' @export
+extract_topo <- function(sf_set,
+                         centroid = TRUE,
+                         z = 12, #~30m
+                         ...) {
+  
+  # Get bounding box and fetch elevation raster
+  bbox <- sf::st_bbox(sf_set)
+  elevation_raster <- elevatr::get_elev_raster(locations = bbox,
+                                               z = z,
+                                               prj = sf::st_crs(sf_set)) #~30m res
+  
+  # Convert to terra raster for processing
+  elevation_rast <- terra::rast(elevation_raster)
+  
+  # Calculate slope and aspect
+  slope <- terra::terrain(elevation_rast, v = "slope", unit = "degrees")
+  aspect <- terra::terrain(elevation_rast, v = "aspect", unit = "degrees")
+  
+  if(centroid) {
+    
+    # Compute centroids and extract values
+    centroids <- sf::st_centroid(sf_set)
+    extracted_vals <- cbind(
+      terra::extract(elevation_rast, centroids, ID = FALSE),
+      terra::extract(slope, centroids, ID = FALSE),
+      terra::extract(aspect, centroids, ID = FALSE)
+    )
+    
+    # Add extracted values to sf object
+    sf_set_plus <- sf_set %>%
+      mutate(elevation = extracted_vals[,1],
+             slope = extracted_vals[,2],
+             aspect = extracted_vals[,3])
+    
+  } else {
+    
+    # Extract values from polygons using exactextractr
+    sf_set_plus <- sf_set |>
+      dplyr::mutate(
+        elevation = exactextractr::exact_extract(elevation_rast, sf_set, ...),
+        slope = exactextractr::exact_extract(slope, sf_set, ...),
+        aspect = exactextractr::exact_extract(aspect, sf_set, ...)
+      )
+    
+  }
+  
+  return(sf_set_plus)
+}

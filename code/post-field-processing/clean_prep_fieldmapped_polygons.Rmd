@@ -9,7 +9,7 @@ This script performs the following steps:
 
 Tyler L. McIntosh
 CU Boulder CIRES Earth Lab
-Last updated: 12/19/23
+Last updated: 2/14/25
 
 This script uses the following naming conventions wherever possible:
  lowerCamelCase for variables
@@ -23,7 +23,7 @@ This script uses the following naming conventions wherever possible:
 #clean
 rm(list = ls())
 
-today <- "1_24_2025" #a string containing the date of run
+today <- "2_14_2025" #a string containing the date of run
 
 ```
 
@@ -267,16 +267,25 @@ uasPoly <- uasPoly |>
                 field_year = lubridate::year(CreationDate)) |>
   sf::st_cast("POLYGON")
 
+
+neon_flight_boxes <- access_neon_aop_flight_box_data() |>
+  sf::st_transform(epsg) |>
+  sf::st_buffer(500)
+
 # Add state/site
 aopPoly <- aopPoly |>
   sf::st_join(states |> dplyr::select(STUSPS), join = st_within) |>
   dplyr::rename(state = STUSPS) |>
-  dplyr::mutate(aop_site = dplyr::case_when(
-    state == "WY" ~ "YELL",
-    state == "WA" ~ "WREF",
-    state == "CO" ~ "NIWO/RMNP",
-    TRUE ~ NA_character_
-  ))
+  sf::st_join(neon_flight_boxes |>
+                dplyr::select(siteID) |>
+                dplyr::filter(siteID == "WREF" | siteID == "NIWO" | siteID == "RMNP" | siteID == "YELL"), join = st_within) |>
+  dplyr::rename(aop_site = siteID)
+  # dplyr::mutate(aop_site = dplyr::case_when(
+  #   state == "WY" ~ "YELL",
+  #   state == "WA" ~ "WREF",
+  #   state == "CO" ~ "NIWO/RMNP",
+  #   TRUE ~ NA_character_
+  # ))
 
 uasPoly <- uasPoly |>
   sf::st_join(states |> dplyr::select(STUSPS), join = st_within) |>
@@ -299,6 +308,37 @@ uasPoly <- uasPoly |>
 
 
 ```
+
+# Add clean plotIDs to all drone data and set ecoregion
+```{r}
+# Open manual plots
+plots <- sf::st_read(here::here("data/manual/macrosystems_plots_23_24.geojson")) |>
+  sf::st_transform(epsg) |>
+  sf::st_buffer(40)
+
+uasPoly <- uasPoly |>
+  sf::st_join(plots |>
+                dplyr::select(plotID_clean), join = st_intersects) |>
+  dplyr::mutate(ecoregion = case_when(state == "CO" ~ "SouthernRockies",
+                                      state == "MT" ~ "MiddleRockies",
+                                      state == "WY" ~ "MiddleRockies",
+                                      state == "OR" ~ "Cascades",
+                                      state == "WA" ~ "Cascades",
+                                      TRUE ~ NA))
+
+aopPoly <- aopPoly |>
+  dplyr::mutate(plotID_clean = paste(aop_site, location, plot, sep = "_")) |>
+  dplyr::mutate(ecoregion = case_when(state == "CO" ~ "SouthernRockies",
+                                      state == "MT" ~ "MiddleRockies",
+                                      state == "WY" ~ "MiddleRockies",
+                                      state == "OR" ~ "Cascades",
+                                      state == "WA" ~ "Cascades",
+                                      TRUE ~ NA))
+
+```
+
+
+
 
 # Check for inconsistencies in the data
 
@@ -542,7 +582,7 @@ uasPolyCleanHalf <- uasPolyClean %>%
 # uasPolyCleanHalf <- buffer.set.to.half.diam(uasPolyClean, 0.01)
 # aopPolyCleanHalf <- buffer.set.to.half.diam(aopPolyClean, 0.01)
 
-mapview(uasPolyClean) + mapview(uasPolyCleanHalf, col.regions = "red")
+#mapview(uasPolyClean) + mapview(uasPolyCleanHalf, col.regions = "red")
 
 ```
 
@@ -551,11 +591,13 @@ mapview(uasPolyClean) + mapview(uasPolyCleanHalf, col.regions = "red")
 
 ```{r}
 #Write out
-sf::st_write(uasPolyClean, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready.geojson")), append = FALSE)
-sf::st_write(uasPolyCleanHalf, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready_half_diam.geojson")), append = FALSE)
+
+
+sf::st_write(uasPolyClean, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready.geojson")), append = FALSE, delete_dsn = TRUE)
+sf::st_write(uasPolyCleanHalf, here::here(datDerDir, paste0("uas_polygons_", today, "_analysis_ready_half_diam.geojson")), append = FALSE, delete_dsn = TRUE)
 
 #Write out
-sf::st_write(aopPolyClean, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready.geojson")), append = FALSE)
-sf::st_write(aopPolyCleanHalf, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready_half_diam.geojson")), append = FALSE)
+sf::st_write(aopPolyClean, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready.geojson")), append = FALSE, delete_dsn = TRUE)
+sf::st_write(aopPolyCleanHalf, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready_half_diam.geojson")), append = FALSE, delete_dsn = TRUE)
 
 ```
