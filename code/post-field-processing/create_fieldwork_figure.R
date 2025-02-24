@@ -1,5 +1,5 @@
 # This script creates figures and tables describing the Macrosystems project data
-# It will AUTOMATICALLY install any missing packages
+# It will AUTOMATICALLY install and load any missing packages
 # Tyler L. McIntosh
 # 2/13/25
 
@@ -18,7 +18,8 @@ install_and_load_packages(c("sf",
                             "purrr",
                             "kableExtra",
                             "rlang",
-                            "tigris"))
+                            "tigris",
+                            "webshot2"))
 
 # Set EPSG
 epsg <- 5070
@@ -155,8 +156,8 @@ create_count_summary_table <- function(cols, rows) {
   
   kableExtra::kbl(t,
                   caption = paste0("Observation counts by ", c_nm, " X ", r_nm)) |>
-    kable_classic(, full_width = F) |>
-    save_kable(file = here("figs", paste0("n_field_data_summary_", c_nm, "_X_", r_nm, ".html")))
+    kableExtra::kable_classic(, full_width = F) |>
+    kableExtra::save_kable(file = here("figs", paste0("n_field_data_summary_", c_nm, "_X_", r_nm, ".html")))
 }
 
 create_count_summary_table(cols = source_dataset,
@@ -253,7 +254,6 @@ kableExtra::kbl(all_area_summary,
   kable_classic(, full_width = F) |>
   save_kable(file = here("figs/area_summary.html"))
 
-
 kableExtra::kbl(all_area_eco_summary,
                 col.names = c("Subset Type",
                               "Subset",
@@ -268,20 +268,88 @@ kableExtra::kbl(all_area_eco_summary,
 
 ## Geographic ----
 
+# access geographic data and export to use in QGIS for carto
+
 usa <- tigris::nation() |>
   sf::st_transform(epsg)
 
+western_states <- tigris::states() |>
+  sf::st_transform(epsg) |>
+  dplyr::filter(STUSPS %in% c("CA", "NV", "WA", "OR", "ID", "MT", "WY", "CO", "UT", "AZ", "NM"))
 
-ggplot2::ggplot() +
-  geom_sf(data = usa, aes(geometry = geometry)) +
-  geom_sf(data = neon_aop, aes(geometry = geometry))
+states <- tigris::states() |>
+  sf::st_transform(epsg)
+
+
+epa_l3 <- access_data_epa_l3_ecoregions_vsi() |>
+  sf::st_transform(epsg)
+
+s_rockies <- epa_l3 |>
+  dplyr::filter(NA_L3NAME == "Southern Rockies")
+m_rockies <- epa_l3 |>
+  dplyr::filter(NA_L3NAME == "Middle Rockies")
+cascades <- epa_l3 |>
+  dplyr::filter(NA_L3NAME == "Cascades")
+
+neon_sites_interest <- neon_aop |>
+  dplyr::filter(siteID == "YELL" |
+                  siteID == "RMNP" |
+                  siteID == "NIWO" |
+                  siteID == "WREF")
+
+neon_sites_interest_points <- neon_sites_interest |>
+  dplyr::group_by(siteID) |>
+  dplyr::summarise(geometry = sf::st_union(geometry)) |>
+  sf::st_centroid()
+
+# yell <- neon_aop |>
+#   dplyr::filter(siteID == "YELL")
+# rmnp <- neon_aop |>
+#   dplyr::filter(siteID == "RMNP")
+# niwo <- neon_aop |>
+#   dplyr::filter(siteID == "NIWO")
+# wref <- neon_aop |>
+#   dplyr::filter(siteID == "WREF")
+
+uas_plots <- sf::st_read(here::here("data", "manual", "macrosystems_plots_23_24.geojson")) |>
+  sf::st_transform(epsg) |>
+  sf::st_centroid() %>%
+  dplyr::mutate(fid = seq(1:nrow(.)))
+
+all_poly_points <- all |>
+  sf::st_centroid()
+
+dir_field_fig_data <- here::here('data', 'raw', 'field_fig')
+dir_ensure(dir_field_fig_data)
+sf::st_write(usa, here::here(dir_field_fig_data, "usa.gpkg"), append = FALSE)
+sf::st_write(western_states, here::here(dir_field_fig_data, "west_states.gpkg"), append = FALSE)
+sf::st_write(states, here::here(dir_field_fig_data, "states.gpkg"), append = FALSE)
+sf::st_write(m_rockies, here::here(dir_field_fig_data, "m_rockies.gpkg"), append = FALSE)
+sf::st_write(s_rockies, here::here(dir_field_fig_data, "s_rockies.gpkg"), append = FALSE)
+sf::st_write(cascades, here::here(dir_field_fig_data, "cascades.gpkg"), append = FALSE)
+sf::st_write(yell, here::here(dir_field_fig_data, "yell.gpkg"), append = FALSE)
+sf::st_write(rmnp, here::here(dir_field_fig_data, "rmnp.gpkg"), append = FALSE)
+sf::st_write(niwo, here::here(dir_field_fig_data, "niwo.gpkg"), append = FALSE)
+sf::st_write(wref, here::here(dir_field_fig_data, "wref.gpkg"), append = FALSE)
+sf::st_write(neon_sites_interest, here::here(dir_field_fig_data, "neon_sites_interest.gpkg"), append = FALSE)
+sf::st_write(neon_sites_interest_points, here::here(dir_field_fig_data, "neon_sites_interest_points.gpkg"), append = FALSE)
+sf::st_write(uas_plots, here::here(dir_field_fig_data, "uas_points.gpkg"), append = FALSE)
+sf::st_write(all_poly_points, here::here(dir_field_fig_data, "field_poly_points.gpkg"), append = FALSE)
 
 
 
-ggplot2::ggplot() +
-  geom_sf(data = epa_l3 |> filter(NA_L3NAME == "Southern Rockies")) +
-  #geom_sf(data = usa, aes(geometry = geometry)) +
-  geom_sf(data = neon_aop, aes(geometry = geometry))
+
+
+# ggplot2::ggplot() +
+#   geom_sf(data = usa, aes(geometry = geometry)) +
+#   geom_sf(data = neon_aop, aes(geometry = geometry))
+# 
+# 
+# 
+# ggplot2::ggplot() +
+#   geom_sf(data = epa_l3 |> filter(NA_L3NAME == "Southern Rockies")) +
+#   #geom_sf(data = usa, aes(geometry = geometry)) +
+#   geom_sf(data = neon_aop, aes(geometry = geometry))
 
 
 
