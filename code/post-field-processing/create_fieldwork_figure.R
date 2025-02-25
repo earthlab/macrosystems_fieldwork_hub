@@ -19,7 +19,57 @@ install_and_load_packages(c("sf",
                             "kableExtra",
                             "rlang",
                             "tigris",
-                            "webshot2"))
+                            "webshot2",
+                            "RColorBrewer",
+                            "scico",
+                            "patchwork",
+                            "extrafont"))
+
+# load Calibri font for use in R
+if(!"Calibri" %in% windowsFonts()$Calibri) {
+  tryCatch(
+    { 
+      extrafont::font_import(pattern = "calibri")
+      extrafont::loadfonts(device = "win", quiet = TRUE)
+    },
+    error = function(cond) {
+      message("Calibri was not installed as it is not available on this computer; figures will be in default font")
+      NA
+    }
+  )
+}
+
+# Robust function not working for some reason, unknown why; storing for future
+# check_and_load_font <- function(font_name) {
+#   # Convert input font name and registered font names to lowercase for case-insensitive comparison
+#   available_fonts <- tolower(names(windowsFonts()))
+#   font_name_lower <- tolower(font_name)
+#   
+#   # Check if the font is already registered
+#   if (!font_name_lower %in% available_fonts) {
+#     tryCatch(
+#       {
+#         message(paste("Attempting to install and load", font_name, "..."))
+#         
+#         # Import and load the font
+#         extrafont::font_import(pattern = font_name, prompt = FALSE)
+#         extrafont::loadfonts(device = "win", quiet = TRUE)
+#         
+#         message(paste(font_name, "successfully installed and loaded!"))
+#       },
+#       error = function(cond) {
+#         message(paste(font_name, "was not installed as it is not available on this computer."))
+#         message("Figures will be rendered in the default font.")
+#         message("Here's the original error message:")
+#         message(conditionMessage(cond))
+#         return(NA)
+#       }
+#     )
+#   } else {
+#     message(paste(font_name, "is already available."))
+#   }
+# }
+
 
 # Set EPSG
 epsg <- 5070
@@ -35,10 +85,10 @@ load_transform_sf <- function(file_path, dataset_name, epsg) {
 # Load, transform, prepare datasets ----
 drone <- load_transform_sf("data/derived/uas_polygons_2_14_2025_analysis_ready.geojson", "uas", epsg) |>
   mutate(extraction_group = plotID_clean) |>
-  select(cover_category, extraction_group, ecoregion, source_dataset)
+  select(cover_category, cover_subcategory, extraction_group, ecoregion, source_dataset)
 aop_field <- load_transform_sf("data/derived/aop_polygons_2_14_2025_analysis_ready.geojson", "aop_field", epsg)  |>
   mutate(extraction_group = aop_site) |>
-  select(cover_category, extraction_group, ecoregion, source_dataset)
+  select(cover_category, cover_subcategory, extraction_group, ecoregion, source_dataset)
 aop_trees <- load_transform_sf("data/derived/ard_weinstein_trees.geojson", "aop_trees", epsg) |>
   mutate(extraction_group = siteID,
          ecoregion = case_when(siteID == "YELL" ~ "MiddleRockies",
@@ -46,7 +96,7 @@ aop_trees <- load_transform_sf("data/derived/ard_weinstein_trees.geojson", "aop_
                                siteID == "NIWO" ~ "SouthernRockies",
                                siteID == "WREF" ~ "Cascades",
                                TRUE ~ NA)) |>
-  select(cover_category, extraction_group, ecoregion, source_dataset)
+  select(cover_category, cover_subcategory, extraction_group, ecoregion, source_dataset)
 plots <- load_transform_sf("data/manual/macrosystems_plots_23_24.geojson", "uas_plots", epsg)
 
 # Merge & get area
@@ -94,46 +144,144 @@ extract_vars <- function(sf_subset) {
 all_dats_added <- all |>
   dplyr::group_split(extraction_group) |>   # Split by site
   furrr::future_map_dfr(extract_vars) |>   # Apply function and merge results
-  dplyr::mutate(all = "all_data")
+  dplyr::mutate(all = "all_data") |>
+  dplyr::mutate(ecoregion = str_replace_all(ecoregion, "(?<=.)([A-Z])", " \\1"))
+
+all_dats_added <- all_dats_added |>
+  dplyr::mutate(source_dataset = factor(source_dataset, levels = c("uas", "aop_field", "aop_trees")))
 
 # Calculate summary statistics & graphics ----
 
 ## Topo ----
 
 create_density_plots <- function(x, nm) {
-  gg <- ggplot2::ggplot(data = all_dats_added) +
-    geom_density(aes(x = {{x}}, colour = source_dataset)) +
-    geom_density(aes(x = {{x}}, color = all))
-  gg_facet <- gg +
-    facet_wrap(~ ecoregion)
+  gg <- ggplot(data = all_dats_added) +
+    # Density plot for source_dataset using RColorBrewer's Set2 palette
+    geom_density(aes(x = {{x}}, color = source_dataset), size = 1) +
+    # Density plot for "all" dataset, ensuring it appears in the legend
+    geom_density(aes(x = {{x}}, color = "all_data"), size = 2) +
+    
+    # Manually set colors for both source_dataset and "All"
+    scale_color_manual(
+      name = "Data Type",  # Legend title
+      values = c(
+        # "all_data"  = brewer.pal(8, "Set2")[4],
+        # "aop_field" = brewer.pal(8, "Set2")[1],  # First color from Set2
+        # "aop_trees" = brewer.pal(8, "Set2")[2],  # Second color from Set2
+        # "uas"       = brewer.pal(8, "Set2")[3]   # Third color from Set2
+        "all_data"  = brewer.pal(8, "Dark2")[4],
+        "aop_field" = brewer.pal(8, "Dark2")[1],  # First color from Set2
+        "aop_trees" = brewer.pal(8, "Dark2")[2],  # Second color from Set2
+        "uas"       = brewer.pal(8, "Dark2")[3]   # Third color from Set2
+        # "all_data"  = scico::scico(4, palette = "batlow")[4],
+        # "aop_field" = scico::scico(4, palette = "batlow")[3],  
+        # "aop_trees" = scico::scico(4, palette = "batlow")[2],  
+        # "uas"       = scico::scico(4, palette = "batlow")[1]  
+      ),
+      labels = c(
+        "all_data"  = "All",
+        "aop_field" = "NEON AOP Cover Digitization",
+        "aop_trees" = "NEON Woody Vegetation \nSurveys",
+        "uas"       = "UAS Cover Digitization"
+      ),
+      breaks = c("all_data", "uas", "aop_field", "aop_trees")
+    ) +
+    
+    # Axis labels
+    labs(
+      x = tools::toTitleCase(deparse(substitute(x))), # Capitalize first letter of X label
+      y = "Density"
+    ) +
+    
+    # Theme adjustments for better visualization
+    theme_minimal() +
+    theme(
+      legend.position = "right", # Keep legend visible
+      #legend.position = "none",
+      legend.title = element_text(face = "bold",
+                                  size = 17),
+      legend.text = element_text(size = 13),
+      text = element_text(family = "Calibri")
+    )
   
+  # Faceted version
+  gg_facet <- gg + facet_wrap(~ ecoregion)
+  
+  # Save both versions
   ggsave(filename = here("figs", paste0("field_data_summary_", nm, ".jpg")),
-         plot = gg)
+         plot = gg, width = 8, height = 6, dpi = 300)
   ggsave(filename = here("figs", paste0("field_data_summary_facet_", nm, ".jpg")),
-         plot = gg_facet)
+         plot = gg_facet, width = 8, height = 6, dpi = 300)
+
+  return(list(gg, gg_facet))
 }
 
-create_density_plots(slope, "slope")
-create_density_plots(aspect, "aspect")
-create_density_plots(elevation, "elevation")
+
+slope_dp <- create_density_plots(slope, "slope")
+aspect_dp <- create_density_plots(aspect, "aspect")
+elevation_dp <- create_density_plots(elevation, "elevation")
+
+# Create combined graphics
+# combined_graphic <- (slope_dp[[1]] + theme(legend.position = "none")) /
+#   aspect_dp[[1]] /
+#   (elevation_dp[[1]] + theme(legend.position = "none"))
+combined_graphic <- (slope_dp[[1]] + theme(legend.position = "none")) /
+  (aspect_dp[[1]] + 
+     theme(legend.title = element_text(face = "plain")) +
+     guides(color = guide_legend(title = "Data Type (A)"))
+  ) /
+  (elevation_dp[[1]] + theme(legend.position = "none"))
+
+combined_graphic
+ggsave(filename = here("figs", paste0("field_data_summary_all.jpg")),
+       plot = combined_graphic, width = 8.5, height = 9, dpi = 300)
+
+facet_combined_graphic <- (slope_dp[[2]] + theme(legend.position = "none")) /
+  aspect_dp[[2]] /
+  (elevation_dp[[2]] + theme(legend.position = "none"))
+facet_combined_graphic
+ggsave(filename = here("figs", paste0("field_data_summary_all_facet.jpg")),
+       plot = facet_combined_graphic, width = 12, height = 12, dpi = 300)
+
+
+brewer.pal(8, "Dark2")
 
 
 ## PFT & EVT ----
 
 create_bar_charts <- function(y, nm) {
   gg <- ggplot(data = all_dats_added) +
-    geom_bar(aes(y = {{y}}, fill = source_dataset))
+    geom_bar(aes(y = {{y}}, fill = source_dataset)) +
+    scale_fill_brewer(name = "Source Dataset",
+                      palette = "Dark2",
+                      labels = c(
+                        "aop_field" = "NEON AOP Fieldmapping",
+                        "aop_trees" = "NEON Woody Veg Surveys",
+                        "uas"       = "UAS Fieldmapping"
+                      )) +
+    theme_minimal() +
+    theme(text = element_text(family = "Calibri")) +
+    labs(x = "Count", y = "Cover Category")
   gg_facet <- gg +
     facet_wrap(~ ecoregion)
   
   ggsave(filename = here("figs", paste0("field_data_summary_", nm, ".jpg")),
-         plot = gg)
+         plot = gg,
+         width = 6, height = 6, dpi = 300)
   ggsave(filename = here("figs", paste0("field_data_summary_facet_", nm, ".jpg")),
-         plot = gg_facet)
+         plot = gg_facet,
+         width = 12, height = 12, dpi = 300)
+  
+  return(list(plain = gg, facet = gg_facet))
 }
 
-create_bar_charts(cover_category, "cover_category")
-create_bar_charts(EVT_GP_N, "EVT_GP_N")
+cov_cat_bar <- create_bar_charts(cover_category, "cover_category")
+evt_gp_bar <- create_bar_charts(EVT_GP_N, "EVT_GP_N")
+
+ggsave(filename = here::here("figs", "field_data_summary_cover_category_2.jpg"),
+      plot = cov_cat_bar$plain,
+       width = 8, height = 3, dpi = 300)
+  
 
 
 
@@ -194,7 +342,7 @@ all_area_pft_eco <- all_dats_added |>
 
 all_area_eco_summary <- rbind(all_area_dataset_eco,
                               all_area_pft_eco) |>
-  select(subset_type, subset, Cascades, MiddleRockies, SouthernRockies)
+  select(subset_type, subset, Cascades, `Middle Rockies`, `Southern Rockies`)
 
 
 
