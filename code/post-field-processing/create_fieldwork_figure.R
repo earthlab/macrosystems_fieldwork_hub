@@ -11,6 +11,7 @@ library(here)
 source(here::here('code/functions.R'))
 
 install_and_load_packages(c("sf",
+                            "here",
                             "tidyverse",
                             "elevatr",
                             "terra",
@@ -23,7 +24,8 @@ install_and_load_packages(c("sf",
                             "RColorBrewer",
                             "scico",
                             "patchwork",
-                            "extrafont"))
+                            "extrafont",
+                            "ggpubr"))
 
 # load Calibri font for use in R
 if(!"Calibri" %in% windowsFonts()$Calibri) {
@@ -216,49 +218,162 @@ create_density_plots <- function(x, nm) {
   return(list(gg, gg_facet))
 }
 
+create_hist_plots <- function(x, nm, slope = FALSE) {
+  
+  bin_width <- diff(range(all_dats_added[[deparse(substitute(x))]], na.rm = TRUE)) / 30  
+  total_count <- nrow(all_dats_added)
+  
+  gg <- ggplot(data = all_dats_added) +
+    geom_histogram(aes(x = {{x}},
+                       y = after_stat(count),
+                       fill = source_dataset)) +
+    # geom_density(aes(x = {{x}},
+    #                  color = "Density: All data",
+    #                  y = (after_stat(density) * bin_width * total_count) / 2),
+    #              size = 1) +
 
-slope_dp <- create_density_plots(slope, "slope")
-aspect_dp <- create_density_plots(aspect, "aspect")
-elevation_dp <- create_density_plots(elevation, "elevation")
+    # Manually set colors for both source_dataset and "All"
+    scale_fill_manual(
+      name = "Data Type",  # Legend title
+      values = c(
+        "aop_field" = scico::scico(10, palette = "batlow", categorical = TRUE)[4],
+        "aop_trees" = scico::scico(10, palette = "batlow", categorical = TRUE)[1],
+        "uas"       = scico::scico(10, palette = "batlow", categorical = TRUE)[3]
+      ),
+      labels = c(
+        "aop_field" = "Airborne imaging-assisted",
+        "aop_trees" = "Woody vegetation survey",
+        "uas"       = "Drone plots"
+      )    ) +
+    
+    scale_color_manual(
+      name = "",
+      values = c(scico::scico(10, palette = "batlow", categorical = TRUE)[5])
+    ) +
+    
+    # Order the legends
+    guides(
+      fill  = guide_legend(order = 1,
+                           override.aes = list(color = NA)),  # "Data Type" legend first
+      color = guide_legend(order = 2)   # Density legend second
+    ) +
+    
+    # Axis labels
+    labs(
+      x = tools::toTitleCase(deparse(substitute(x))), # Capitalize first letter of X label
+      y = "Count"
+    ) +
+    
+    # Theme adjustments for better visualization
+    theme_minimal() +
+    theme(
+      legend.position = "right", # Keep legend visible
+      #legend.position = "none",
+      legend.spacing = unit(-25, "pt"),
+      legend.title = element_text(face = "bold",
+                                  size = 17),
+      legend.text = element_text(size = 13),
+      legend.key = element_rect(color = NA),
+      text = element_text(family = "Calibri")
+    )
+  
+  if(slope == TRUE) {
+    gg <- gg + xlim(0, 45)
+  }
+  
+  gg_2 <- gg + geom_density(aes(x = {{x}},
+                             color = "Density: All data",
+                             y = (after_stat(density) * bin_width * total_count) / 2),
+                         size = 1)
+  
+  # Faceted version
+  gg_facet <- gg +
+    facet_wrap(~ ecoregion) +
+    geom_density(aes(x = {{x}},
+                     color = "Density: All data",
+                     y = (after_stat(density) * bin_width * total_count) / (2 * 3)),
+                 size = 1)
+  
+  # Save both versions
+  ggsave(filename = here("figs", paste0("field_data_summary_hist_", nm, ".jpg")),
+         plot = gg_2, width = 8, height = 6, dpi = 300)
+  ggsave(filename = here("figs", paste0("field_data_summary_hist_facet_", nm, ".jpg")),
+         plot = gg_facet, width = 8, height = 6, dpi = 300)
+  
+  return(list(plain = gg_2, facet = gg_facet))
+}
 
-# Create combined graphics
-# combined_graphic <- (slope_dp[[1]] + theme(legend.position = "none")) /
-#   aspect_dp[[1]] /
-#   (elevation_dp[[1]] + theme(legend.position = "none"))
-combined_graphic <- (slope_dp[[1]] + theme(legend.position = "none")) /
-  (aspect_dp[[1]] + 
-     theme(legend.title = element_text(face = "plain")) +
-     guides(color = guide_legend(title = "Data Type (A)"))
-  ) /
-  (elevation_dp[[1]] + theme(legend.position = "none"))
+create_combined_graphics <- function(s, a, e, fig_type) {
+  # Create combined graphics
+  combined_graphic <- (s[[1]] + theme(legend.position = "none")) /
+    (a[[1]] + 
+       theme(legend.title = element_text(face = "plain"))) /
+    (e[[1]] + theme(legend.position = "none"))
+  
+  combined_graphic
+  ggsave(filename = here("figs", paste0("field_data_summary_all_", fig_type, ".jpg")),
+         plot = combined_graphic, width = 8.5, height = 9, dpi = 300)
+  
+  facet_combined_graphic <- (s[[2]] + theme(legend.position = "none")) /
+    a[[2]] /
+    (e[[2]] + theme(legend.position = "none"))
 
-combined_graphic
-ggsave(filename = here("figs", paste0("field_data_summary_all.jpg")),
-       plot = combined_graphic, width = 8.5, height = 9, dpi = 300)
+  ggsave(filename = here("figs", paste0("field_data_summary_all_", fig_type, "_facet.jpg")),
+         plot = facet_combined_graphic, width = 12, height = 12, dpi = 300)
+  
+  return(facet_combined_graphic)
+}
 
-facet_combined_graphic <- (slope_dp[[2]] + theme(legend.position = "none")) /
-  aspect_dp[[2]] /
-  (elevation_dp[[2]] + theme(legend.position = "none"))
-facet_combined_graphic
-ggsave(filename = here("figs", paste0("field_data_summary_all_facet.jpg")),
-       plot = facet_combined_graphic, width = 12, height = 12, dpi = 300)
+
+# slope_dp <- create_density_plots(slope, "slope")
+# aspect_dp <- create_density_plots(aspect, "aspect")
+# elevation_dp <- create_density_plots(elevation, "elevation")
+
+# create_combined_graphics(s = slope_dp,
+#                          a = aspect_dp,
+#                          e = elevation_dp,
+#                          fig_type = "density")
+
+slope_hist <- create_hist_plots(slope, "slope", slope = TRUE)
+slope_hist$plain
+aspect_hist <- create_hist_plots(aspect, "aspect")
+elevation_hist <- create_hist_plots(elevation, "elevation")
+
+
+comb_hist <- create_combined_graphics(s = slope_hist,
+                         a = aspect_hist,
+                         e = elevation_hist,
+                         fig_type = "hist")
 
 
 brewer.pal(8, "Dark2")
-
+scico::scico(10, palette = "batlow", categorical = TRUE)
 
 ## PFT & EVT ----
 
-create_bar_charts <- function(y, nm) {
+create_bar_charts <- function(y, nm, height = 6) {
   gg <- ggplot(data = all_dats_added) +
     geom_bar(aes(y = {{y}}, fill = source_dataset)) +
-    scale_fill_brewer(name = "Source Dataset",
-                      palette = "Dark2",
-                      labels = c(
-                        "aop_field" = "NEON AOP Fieldmapping",
-                        "aop_trees" = "NEON Woody Veg Surveys",
-                        "uas"       = "UAS Fieldmapping"
-                      )) +
+    # scale_fill_brewer(name = "Source Dataset",
+    #                   palette = "Dark2",
+    #                   labels = c(
+    #                     "aop_field" = "NEON AOP Fieldmapping",
+    #                     "aop_trees" = "NEON Woody Veg Surveys",
+    #                     "uas"       = "UAS Fieldmapping"
+    #                   )) +
+    scale_fill_manual(
+      name = "Data Type",  # Legend title
+      values = c(
+        "aop_field" = scico::scico(10, palette = "batlow", categorical = TRUE)[4],
+        "aop_trees" = scico::scico(10, palette = "batlow", categorical = TRUE)[1],
+        "uas"       = scico::scico(10, palette = "batlow", categorical = TRUE)[3]
+      ),
+      labels = c(
+        #"all_data"  = "All",
+        "aop_field" = "Airborne imaging-assisted",
+        "aop_trees" = "Woody vegetation survey",
+        "uas"       = "Drone plots"
+      )    ) +
     theme_minimal() +
     theme(text = element_text(family = "Calibri")) +
     labs(x = "Count", y = "Cover Category")
@@ -267,21 +382,36 @@ create_bar_charts <- function(y, nm) {
   
   ggsave(filename = here("figs", paste0("field_data_summary_", nm, ".jpg")),
          plot = gg,
-         width = 6, height = 6, dpi = 300)
+         width = height * 2, height = height, dpi = 300)
   ggsave(filename = here("figs", paste0("field_data_summary_facet_", nm, ".jpg")),
          plot = gg_facet,
-         width = 12, height = 12, dpi = 300)
+         width = height * 3, height = height, dpi = 300)
   
   return(list(plain = gg, facet = gg_facet))
 }
 
-cov_cat_bar <- create_bar_charts(cover_category, "cover_category")
+cov_cat_bar <- create_bar_charts(cover_category, "cover_category", height = 3)
 evt_gp_bar <- create_bar_charts(EVT_GP_N, "EVT_GP_N")
 
-ggsave(filename = here::here("figs", "field_data_summary_cover_category_2.jpg"),
-      plot = cov_cat_bar$plain,
-       width = 8, height = 3, dpi = 300)
-  
+
+# Another combined figure
+combined_legend <- patchwork::wrap_elements(full = ggpubr::get_legend(slope_hist[[1]] +
+                                                            theme(legend.position = "bottom",
+                                                                  legend.spacing = unit(0, "pt"))))
+
+comb_all <- ((slope_hist[[1]] + theme(legend.position = "none")) + 
+               aspect_hist[[1]] + theme(legend.position = "none")) /
+            (aspect_hist[[1]] + theme(legend.position = "none") + 
+               cov_cat_bar$plain + theme(legend.position = "none")) /
+  plot_annotation(tag_levels = "A") +
+  combined_legend +
+  plot_layout(heights = c(3, 3, 0.5))
+comb_all
+ggsave(filename = here("figs", paste0("field_data_summary_all_mixed_.jpg")),
+       plot = comb_all, width = 12, height = 8, dpi = 300)
+
+
+
 
 
 
@@ -299,8 +429,10 @@ create_count_summary_table <- function(cols, rows) {
     ungroup() |>
     pivot_wider(names_from = {{cols}},
                 values_from = observations) %>%
-    mutate(all = rowSums(across(2:length(names(.))))) %>%
-    bind_rows(summarise_all(., ~if(is.numeric(.)) sum(.) else "Total"))
+    mutate(All = rowSums(across(2:length(names(.))), na.rm = TRUE)) %>%
+    bind_rows(summarise_all(., ~if(is.numeric(.)) sum(., na.rm = TRUE) else "Total"))
+  
+  t[is.na(t)] <- 0
   
   kableExtra::kbl(t,
                   caption = paste0("Observation counts by ", c_nm, " X ", r_nm)) |>
@@ -315,6 +447,9 @@ create_count_summary_table(cols = cover_category,
                            rows = ecoregion)
 
 create_count_summary_table(cols = ecoregion,
+                           rows = EVT_GP_N)
+
+create_count_summary_table(cols = cover_category,
                            rows = EVT_GP_N)
 
 ## Area ----
