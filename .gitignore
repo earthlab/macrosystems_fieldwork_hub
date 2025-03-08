@@ -49,5 +49,6 @@ po/*~
 rsconnect/
 
 figs/
-data/
+data/raw/
+data/derived/
 gis/

@@ -401,7 +401,7 @@ combined_legend <- patchwork::wrap_elements(full = ggpubr::get_legend(slope_hist
 
 comb_all <- ((slope_hist[[1]] + theme(legend.position = "none")) + 
                aspect_hist[[1]] + theme(legend.position = "none")) /
-            (aspect_hist[[1]] + theme(legend.position = "none") + 
+            (elevation_hist[[1]] + theme(legend.position = "none") + 
                cov_cat_bar$plain + theme(legend.position = "none")) /
   plot_annotation(tag_levels = "A") +
   combined_legend +
