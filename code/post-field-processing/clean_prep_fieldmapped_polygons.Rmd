@@ -23,7 +23,7 @@ This script uses the following naming conventions wherever possible:
 #clean
 rm(list = ls())
 
-today <- "2_14_2025" #a string containing the date of run
+today <- "4_4_25" #a string containing the date of run
 
 ```
 
@@ -169,6 +169,14 @@ uasPoly <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = uas_polys_u
                                                                    timeout = 500) |>
   sf::st_transform(epsg)
 
+uasPoly_raw <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = uas_polys_url,
+                                                                   query_params = query_params,
+                                                                   max_record = 1000,
+                                                                   n = "all",
+                                                                   timeout = 500)
+
+sf::st_write(uasPoly_raw, here::here('data/derived/test_raw_uas_from_arc.gpkg'))
+
 
 # Get corrected polygon data provided by Solomon Wilcox (undergrad)
 # These polygons needed to be corrected due to issues with the drone flights that resulted in mapping onto RGB imagery rather than directly onto MicaSense imagery
@@ -250,6 +258,14 @@ bear_uas_poly_clean <- bear_uas_poly |>
                 ),
                 imagery = "UAS",
                 field_year = lubridate::year(CreationDate))
+
+
+bear_uas_raw <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = bear_uas_polys_url,
+                                                                   query_params = query_params,
+                                                                   max_record = 1000,
+                                                                   n = "all",
+                                                                   timeout = 500)
+sf::st_write(bear_uas_raw |> select(-FID), here::here('data/derived/test_raw_uas_beartooth_from_arc.gpkg'))
 
 
 
@@ -601,3 +617,19 @@ sf::st_write(aopPolyClean, here::here(datDerDir, paste0("aop_polygons_", today, 
 sf::st_write(aopPolyCleanHalf, here::here(datDerDir, paste0("aop_polygons_", today, "_analysis_ready_half_diam.geojson")), append = FALSE, delete_dsn = TRUE)
 
 ```
+
+
+``` {r}
+
+test_mtst_5 <- terra::rast(here::here('data/derived/uas/mtst_5-07-17-24_M300_ORTHO.tif'))
+
+test_sh67w1 <- terra::rast(here::here('data/derived/uas/SH67W1_corrected.tif'))
+
+test_sr36 <- terra::rast(here::here('data/derived/uas/sistersRanger_36-06-25-24_M210_ORTHO.tif'))
+
+
+
+
+```
+
+

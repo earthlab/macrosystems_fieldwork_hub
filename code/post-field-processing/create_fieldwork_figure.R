@@ -399,12 +399,20 @@ combined_legend <- patchwork::wrap_elements(full = ggpubr::get_legend(slope_hist
                                                             theme(legend.position = "bottom",
                                                                   legend.spacing = unit(0, "pt"))))
 
-comb_all <- ((slope_hist[[1]] + theme(legend.position = "none")) + 
-               aspect_hist[[1]] + theme(legend.position = "none")) /
-            (elevation_hist[[1]] + theme(legend.position = "none") + 
-               cov_cat_bar$plain + theme(legend.position = "none")) /
-  plot_annotation(tag_levels = "A") +
-  combined_legend +
+comb_all <- ((cov_cat_bar$plain + theme(legend.position = "none")) + 
+               slope_hist[[1]] + theme(legend.position = "none")) /
+            (aspect_hist[[1]] + theme(legend.position = "none") + 
+               elevation_hist[[1]] + theme(legend.position = "none")) /
+  plot_spacer() +
+  plot_annotation(tag_levels = c("A")) +
+  patchwork::inset_element(p = combined_legend,
+                           left = 0,
+                           bottom = 0.75,
+                           right = 1,
+                           top = 0.25,
+                           align_to = "full",
+                           ignore_tag = TRUE) +
+  #combined_legend +
   plot_layout(heights = c(3, 3, 0.5))
 comb_all
 ggsave(filename = here("figs", paste0("field_data_summary_all_mixed_.jpg")),
@@ -635,5 +643,30 @@ sf::st_write(all_poly_points, here::here(dir_field_fig_data, "field_poly_points.
 #   geom_sf(data = neon_aop, aes(geometry = geometry))
 
 
+
+
+# Load, transform, prepare datasets ----
+drone <- load_transform_sf("data/derived/uas_polygons_2_14_2025_analysis_ready.geojson", "uas", epsg) |>
+  dplyr::mutate(extraction_group = plotID_clean)
+aop_field <- load_transform_sf("data/derived/aop_polygons_2_14_2025_analysis_ready.geojson", "aop_field", epsg)  |>
+  dplyr::mutate(extraction_group = aop_site)
+aop_trees <- load_transform_sf("data/derived/ard_weinstein_trees.geojson", "aop_trees", epsg) |>
+  dplyr::mutate(extraction_group = siteID,
+         ecoregion = case_when(siteID == "YELL" ~ "MiddleRockies",
+                               siteID == "RMNP" ~ "SouthernRockies",
+                               siteID == "NIWO" ~ "SouthernRockies",
+                               siteID == "WREF" ~ "Cascades",
+                               TRUE ~ NA))
+
+
+hist(drone$area_m, breaks = 2000)
+hist(drone$area_m, breaks = 2000, xlim = c(0, 1))
+hist(aop_field$area_m, breaks = 2000, xlim = c(0, 20))
+
+
+
+d_shade <- drone |>
+  group_by(shaded, cover_category) |>
+  summarize(n = n())
 
 

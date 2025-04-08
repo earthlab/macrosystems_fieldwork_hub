@@ -36,12 +36,13 @@ dir_ensure(dir_derived)
 dir_ensure(dir_field_rasters)
 
 ## Load data ----
+options(timeout = 10000)
 raster <- access_landfire_evt_conus_2022(access = 'download',
                                          dir_path = dir_raw)
 raster_cats <- access_landfire_evt_conus_2022_csv()
 region_polygons <- access_data_epa_l3_ecoregions_vsi()
 areas_of_interest <- access_neon_aop_flight_box_data() #note that flight boxes have the domain data as "D##" instead of just "##"
-
+options(timeout = 1000)
 
 ## Load data from script 01 ----
 # which creates conservative EVT layers
@@ -51,35 +52,41 @@ areas_of_interest <- access_neon_aop_flight_box_data() #note that flight boxes h
 # put over them to remove speckle
 
 #3x3 median window
-evt3F <- here::here('data', 'derived', 'conservative_evt_west_3window', 'conservative_evt_west_3window.tif')
-if(file.exists(evt3F)) {
-  evt_conservative_3_window <- terra::rast(evt3F)
-} else {
-  evt3Fs <- list.files(here::here('data', 'derived', 'conservative_evt_west_3window'), pattern = "\\.tif$", full.names = TRUE)
-  merge_list_of_rasters(file_list = evt3Fs,
-                        file_final_path = evt3F,
-                        datatype = "INT2U",
-                        compress = TRUE,
-                        write = TRUE)
-  evt_conservative_3_window <- terra::rast(evt3F)
-}
+#read directly from CyVerse
+terra::rast('https://data.cyverse.org/dav-anon/iplant/projects/earthlab/macrosystems/field-planning/derived/conservative_evt_west_3window/conservative_evt_west_3window.tif')
+
+# evt3F <- here::here('data', 'derived', 'conservative_evt_west_3window', 'conservative_evt_west_3window.tif')
+# if(file.exists(evt3F)) {
+#   evt_conservative_3_window <- terra::rast(evt3F)
+# } else {
+#   evt3Fs <- list.files(here::here('data', 'derived', 'conservative_evt_west_3window'), pattern = "\\.tif$", full.names = TRUE)
+#   merge_list_of_rasters(file_list = evt3Fs,
+#                         file_final_path = evt3F,
+#                         datatype = "INT2U",
+#                         compress = TRUE,
+#                         write = TRUE)
+#   evt_conservative_3_window <- terra::rast(evt3F)
+# }
 levels(evt_conservative_3_window) <- terra::cats(raster)[[1]]
 
 
 #5x5 median window
-evt5F <- here::here('data', 'derived', 'conservative_evt_west_5window', 'conservative_evt_west_5window.tif')
-if(file.exists(evt5F)) {
-  evt_conservative_5_window <- terra::rast(evt5F)
-} else {
-  evt5Fs <- list.files(here::here('data', 'derived', 'conservative_evt_west_5window'), pattern = "\\.tif$", full.names = TRUE)
-  merge_list_of_rasters(file_list = evt5Fs,
-                        file_final_path = evt5F,
-                        datatype = "INT2U",
-                        compress = TRUE,
-                        write = TRUE)
-  evt_conservative_5_window <- terra::rast(evt5F)
-}
-levels(evt_conservative_5_window) <- terra::cats(raster)[[1]]
+#read directly from CyVerse
+terra::rast('https://data.cyverse.org/dav-anon/iplant/projects/earthlab/macrosystems/field-planning/derived/conservative_evt_west_5window/conservative_evt_west_5window.tif')
+
+# evt5F <- here::here('data', 'derived', 'conservative_evt_west_5window', 'conservative_evt_west_5window.tif')
+# if(file.exists(evt5F)) {
+#   evt_conservative_5_window <- terra::rast(evt5F)
+# } else {
+#   evt5Fs <- list.files(here::here('data', 'derived', 'conservative_evt_west_5window'), pattern = "\\.tif$", full.names = TRUE)
+#   merge_list_of_rasters(file_list = evt5Fs,
+#                         file_final_path = evt5F,
+#                         datatype = "INT2U",
+#                         compress = TRUE,
+#                         write = TRUE)
+#   evt_conservative_5_window <- terra::rast(evt5F)
+# }
+# levels(evt_conservative_5_window) <- terra::cats(raster)[[1]]
 
 
 
