@@ -50,7 +50,13 @@ wref <- weinstein |>
   ) |>
   sf::st_transform(5070)
 
-trees <- rbind(yell, rmnp, wref, niwo)
+trees <- rbind(yell |> filter(tile_year == 2020), 
+               rmnp |> filter(tile_year == 2018),
+               wref |> filter(tile_year == 2021),
+               niwo |> filter(tile_year == 2020))
+
+#trees |> group_by(tile_year, siteID) |> summarise(n = n())
+
 
 # Merge taxonomic IDs
 # Download from https://data.neonscience.org/taxonomic-lists after selecting "Taxon Type - Plant"
@@ -79,15 +85,15 @@ half_diam_trees <- trees %>%
 x <- trees |> dplyr::filter(siteID == "NIWO")
 y <- half_diam_trees |> dplyr::filter(siteID == "NIWO")
 
-mapview(x) + mapview(y, col.regions = "red")
+#mapview(x) + mapview(y, col.regions = "red")
 
 
 # Write out
 sf::st_write(trees,
-             here::here('data', 'derived', 'ard_weinstein_trees.geojson'),
+             here::here('data', 'derived', 'ard_weinstein_trees_most_recent_survey.geojson'),
              append = FALSE)
 sf::st_write(half_diam_trees,
-             here::here('data', 'derived', 'ard_weinstein_trees_half_diam.geojson'),
+             here::here('data', 'derived', 'ard_weinstein_trees_most_recent_survey_half_diam.geojson'),
              append = FALSE)
 
 

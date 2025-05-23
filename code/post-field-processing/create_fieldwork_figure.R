@@ -85,13 +85,13 @@ load_transform_sf <- function(file_path, dataset_name, epsg) {
 }
 
 # Load, transform, prepare datasets ----
-drone <- load_transform_sf("data/derived/uas_polygons_2_14_2025_analysis_ready.geojson", "uas", epsg) |>
+drone <- load_transform_sf("data/derived/uas_polygons_4_22_2025_analysis_ready.geojson", "uas", epsg) |>
   mutate(extraction_group = plotID_clean) |>
   select(cover_category, cover_subcategory, extraction_group, ecoregion, source_dataset)
-aop_field <- load_transform_sf("data/derived/aop_polygons_2_14_2025_analysis_ready.geojson", "aop_field", epsg)  |>
+aop_field <- load_transform_sf("data/derived/aop_polygons_4_22_2025_analysis_ready.geojson", "aop_field", epsg)  |>
   mutate(extraction_group = aop_site) |>
   select(cover_category, cover_subcategory, extraction_group, ecoregion, source_dataset)
-aop_trees <- load_transform_sf("data/derived/ard_weinstein_trees.geojson", "aop_trees", epsg) |>
+aop_trees <- load_transform_sf("data/derived/ard_weinstein_trees_most_recent_survey.geojson", "aop_trees", epsg) |>
   mutate(extraction_group = siteID,
          ecoregion = case_when(siteID == "YELL" ~ "MiddleRockies",
                                siteID == "RMNP" ~ "SouthernRockies",

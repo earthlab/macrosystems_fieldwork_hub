@@ -23,7 +23,7 @@ This script uses the following naming conventions wherever possible:
 #clean
 rm(list = ls())
 
-today <- "4_4_25" #a string containing the date of run
+today <- "4_22_2025" #a string containing the date of run
 
 ```
 
@@ -175,7 +175,7 @@ uasPoly_raw <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = uas_pol
                                                                    n = "all",
                                                                    timeout = 500)
 
-sf::st_write(uasPoly_raw, here::here('data/derived/test_raw_uas_from_arc.gpkg'))
+sf::st_write(uasPoly_raw, here::here('data/derived/test_raw_uas_from_arc.gpkg'), append = FALSE)
 
 
 # Get corrected polygon data provided by Solomon Wilcox (undergrad)
@@ -265,7 +265,7 @@ bear_uas_raw <- access_data_get_x_from_arcgis_rest_api_geojson(base_url = bear_u
                                                                    max_record = 1000,
                                                                    n = "all",
                                                                    timeout = 500)
-sf::st_write(bear_uas_raw |> select(-FID), here::here('data/derived/test_raw_uas_beartooth_from_arc.gpkg'))
+sf::st_write(bear_uas_raw |> select(-FID), here::here('data/derived/test_raw_uas_beartooth_from_arc.gpkg'), append = FALSE)
 
 
 
@@ -553,8 +553,23 @@ uasPolyClean <- uasPolyClean |>
   st_area_to_poly(nm = "area_m")
 
 
+```
+
+# Add imagery year to AOP polygons
+```{r}
+
+uasPolyClean <- uasPolyClean |>
+  dplyr::mutate(imagery_year = field_year)
+aopPolyClean <- aopPolyClean |>
+  dplyr::mutate(imagery_year = dplyr::case_when(field_year == 2024 & aop_site == 'WREF' ~ 2023,
+                                                 field_year == 2024 & aop_site == 'YELL' ~ 2023,
+                                                 (field_year == 2023 | field_year == 2024) & aop_site == 'NIWO' ~ 2020,
+                                                 field_year == 2023 & aop_site == 'RMNP' ~ 2022,
+                                                 TRUE ~ NA))
 
 ```
+
+
 
 # DEPRECTATED -- Filter out polygons that are too small
 This has been removed to retain all polygons for as long as possible
@@ -620,16 +635,13 @@ sf::st_write(aopPolyCleanHalf, here::here(datDerDir, paste0("aop_polygons_", tod
 
 
 ``` {r}
-
-test_mtst_5 <- terra::rast(here::here('data/derived/uas/mtst_5-07-17-24_M300_ORTHO.tif'))
-
-test_sh67w1 <- terra::rast(here::here('data/derived/uas/SH67W1_corrected.tif'))
-
-test_sr36 <- terra::rast(here::here('data/derived/uas/sistersRanger_36-06-25-24_M210_ORTHO.tif'))
-
-
-
-
+# 
+# test_mtst_5 <- terra::rast(here::here('data/derived/uas/mtst_5-07-17-24_M300_ORTHO.tif'))
+# 
+# test_sh67w1 <- terra::rast(here::here('data/derived/uas/SH67W1_corrected.tif'))
+# 
+# test_sr36 <- terra::rast(here::here('data/derived/uas/sistersRanger_36-06-25-24_M210_ORTHO.tif'))
+# 
 ```
 
 
